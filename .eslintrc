@@ -1,7 +1,7 @@
 {
   "ignorePatterns": ["**/*.d.ts", "serviceWorker.ts"],
-  "globals" : {
-    "JSX" : "readonly"
+  "globals": {
+    "JSX": "readonly"
   },
   "extends": [
     "react-app",
@@ -26,6 +26,13 @@
         "required": {
           "some": ["nesting", "id"]
         }
+      }
+    ],
+
+    "no-plusplus": [
+      "error",
+      {
+        "allowForLoopAfterthoughts": true
       }
     ],
 

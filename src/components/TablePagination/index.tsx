@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { UsePaginationInstanceProps, UsePaginationState } from 'react-table';
 import classnames from 'classnames';
 
-import getVisiblePages from './util';
+import { /* getVisiblePages, */ getPaginationSlots } from './util';
 
 import './index.scss';
 
@@ -53,6 +53,38 @@ const TablePagination = ({
           </li>
         )}
         <li className="usa-pagination__item usa-pagination__page-no">
+          {getPaginationSlots(pageIndex + 1, pageOptions.length).map(slot => {
+            if (slot.is === 'pageNumber') {
+              return (
+                <div key={slot.pageNumber} className="usa-pagination__item">
+                  <button
+                    type="button"
+                    aria-label={`Page ${slot.pageNumber}`}
+                    key={slot.pageNumber}
+                    className={
+                      slot.isCurrent
+                        ? 'usa-pagination__button usa-current'
+                        : 'usa-pagination__button'
+                    }
+                    onClick={() => gotoPage(slot.pageNumber - 1)}
+                  >
+                    {slot.pageNumber}
+                  </button>
+                </div>
+              );
+            }
+            return (
+              <div
+                className="usa-pagination__item usa-pagination__overflow"
+                role="presentation"
+                key={slot.slotNumber}
+              >
+                <span> … </span>
+              </div>
+            );
+          })}
+
+          {/*
           {getVisiblePages(pageIndex + 1, pageOptions.length).map(
             (page, index, array) => {
               return (
@@ -102,6 +134,7 @@ const TablePagination = ({
               );
             }
           )}
+          */}
         </li>
         {canNextPage && (
           <li className="usa-pagination__item usa-pagination__arrow">
