@@ -1,7 +1,12 @@
 // Logic for showing visible page buttons based on input of current page and total page
 // Based on USWDS guidelines - https://designsystem.digital.gov/components/pagination/
 
-export const MAX_SLOTS = 7; // don't change this; logic depends on it
+// don't change this value; logic depends on it
+type MAX_SLOTS = 7;
+// eslint-disable-next-line @typescript-eslint/no-redeclare, no-redeclare
+export const MAX_SLOTS: MAX_SLOTS = 7;
+
+// TODO - see if I can get tuple working with MAX_SLOTS type
 
 // Creates an array of page numbers starting a 1, from an input of a number
 const fillMinPages = (totalPages: number) => {
