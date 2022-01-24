@@ -46,6 +46,8 @@ describe('TablePagination Util', () => {
   });
 });
 
+// properties taken from https://designsystem.digital.gov/components/pagination/ - "behaviors" section
+
 describe.only('getPaginationSlots property-based testing', () => {
   it('Removes extra slots if there are fewer than MAX_SLOTS', () => {
     fc.assert(
