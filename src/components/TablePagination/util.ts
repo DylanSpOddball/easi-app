@@ -7,6 +7,7 @@ type MAX_SLOTS = 7;
 export const MAX_SLOTS: MAX_SLOTS = 7;
 
 // TODO - see if I can get tuple working with MAX_SLOTS type
+// see https://gist.github.com/DylanSp/b6eea0dbf9a6d176a9c8125cc8fa347b
 
 // Creates an array of page numbers starting a 1, from an input of a number
 const fillMinPages = (totalPages: number) => {
