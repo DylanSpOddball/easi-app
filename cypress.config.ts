@@ -8,8 +8,9 @@ export default defineConfig({
     // You may want to clean this up later by importing these.
     setupNodeEvents(on, config) {
       // eslint-disable-next-line global-require
-      return require('./cypress/plugins/index.js')(on, config);
+      return require('./cypress/plugins/index')(on, config);
     },
     baseUrl: 'http://localhost:3000'
-  }
+  },
+  defaultCommandTimeout: 6000
 });

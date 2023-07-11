@@ -9,7 +9,6 @@ import {
 } from 'react-table';
 import { useQuery } from '@apollo/client';
 import { Table as UswdsTable } from '@trussworks/react-uswds';
-import { DateTime } from 'luxon';
 
 import UswdsReactLink from 'components/LinkWrapper';
 import Spinner from 'components/Spinner';
@@ -20,8 +19,8 @@ import TableResults from 'components/TableResults';
 import GetRequestsQuery from 'queries/GetRequestsQuery';
 import { GetRequests, GetRequestsVariables } from 'queries/types/GetRequests';
 import { RequestType } from 'types/graphql-global-types';
-import { formatDate } from 'utils/date';
-import globalTableFilter from 'utils/globalTableFilter';
+import { formatDateLocal, formatDateUtc } from 'utils/date';
+import globalFilterCellText from 'utils/globalFilterCellText';
 import {
   currentTableSortDescription,
   getColumnSortStatus,
@@ -29,7 +28,7 @@ import {
   sortColumnValues
 } from 'utils/tableSort';
 
-import tableMap from './tableMap';
+import tableMap, { isTRBRequestType } from './tableMap';
 
 import '../index.scss';
 
@@ -44,7 +43,12 @@ const Table = ({
   hiddenColumns,
   defaultPageSize = 10
 }: myRequestsTableProps) => {
-  const { t } = useTranslation(['home', 'intake', 'accessibility']);
+  const { t } = useTranslation([
+    'home',
+    'intake',
+    'accessibility',
+    'technicalAssistance'
+  ]);
   const { loading, error, data: tableData } = useQuery<
     GetRequests,
     GetRequestsVariables
@@ -60,16 +64,22 @@ const Table = ({
         accessor: 'name',
         Cell: ({ row, value }: any) => {
           let link: string;
-          switch (row.original.type) {
-            case t('requestsTable.types.ACCESSIBILITY_REQUEST'):
-              link = `/508/requests/${row.original.id}`;
-              break;
-            case t('requestsTable.types.GOVERNANCE_REQUEST'):
-              link = `/governance-task-list/${row.original.id}`;
-              break;
-            default:
-              link = '/';
+
+          if (isTRBRequestType(row.original)) {
+            link = `/trb/task-list/${row.original.id}`;
+          } else {
+            switch (row.original.type) {
+              case t('requestsTable.types.ACCESSIBILITY_REQUEST'):
+                link = `/508/requests/${row.original.id}`;
+                break;
+              case t('requestsTable.types.GOVERNANCE_REQUEST'):
+                link = `/governance-task-list/${row.original.id}`;
+                break;
+              default:
+                link = '/';
+            }
           }
+
           return <UswdsReactLink to={link}>{value}</UswdsReactLink>;
         },
         width: '220px',
@@ -81,15 +91,10 @@ const Table = ({
       },
       {
         Header: t('requestsTable.headers.submittedAt'),
-        accessor: ({ submittedAt }: any) => {
-          if (submittedAt) {
-            return DateTime.fromISO(submittedAt);
-          }
-          return null;
-        },
+        accessor: 'submittedAt',
         Cell: ({ value }: any) => {
           if (value) {
-            return formatDate(value);
+            return formatDateUtc(value, 'MM/dd/yyyy');
           }
           return 'Not submitted';
         }
@@ -108,8 +113,9 @@ const Table = ({
               return (
                 <span>
                   {value}
-                  <span className="text-base-dark font-body-3xs">{` - Changed on ${formatDate(
-                    row.original.statusCreatedAt
+                  <span className="text-base-dark font-body-3xs">{` - Changed on ${formatDateLocal(
+                    row.original.statusCreatedAt,
+                    'MM/dd/yyyy'
                   )}`}</span>
                 </span>
               );
@@ -117,6 +123,8 @@ const Table = ({
               if (row.original.lcid) {
                 return `${value}: ${row.original.lcid}`;
               }
+              return value;
+            case t(`requestsTable.types.TRB`):
               return value;
             default:
               return '';
@@ -126,15 +134,10 @@ const Table = ({
       },
       {
         Header: t('requestsTable.headers.nextMeetingDate'),
-        accessor: ({ nextMeetingDate }: any) => {
-          if (nextMeetingDate) {
-            return DateTime.fromISO(nextMeetingDate);
-          }
-          return null;
-        },
+        accessor: 'nextMeetingDate',
         Cell: ({ value }: any) => {
           if (value) {
-            return formatDate(value);
+            return formatDateUtc(value, 'MM/dd/yyyy');
           }
           return 'None';
         }
@@ -164,6 +167,7 @@ const Table = ({
     previousPage,
     setPageSize,
     page,
+    rows,
     setGlobalFilter,
     state,
     prepareRow
@@ -179,7 +183,7 @@ const Table = ({
           );
         }
       },
-      globalFilter: useMemo(() => globalTableFilter, []),
+      globalFilter: useMemo(() => globalFilterCellText, []),
       autoResetSortBy: false,
       autoResetPage: false,
       initialState: {
@@ -193,6 +197,8 @@ const Table = ({
     useSortBy,
     usePagination
   );
+
+  rows.map(row => prepareRow(row));
 
   if (loading) {
     return (
@@ -263,7 +269,6 @@ const Table = ({
         </thead>
         <tbody {...getTableBodyProps()}>
           {page.map(row => {
-            prepareRow(row);
             return (
               <tr {...row.getRowProps()}>
                 {row.cells
@@ -299,25 +304,30 @@ const Table = ({
       </UswdsTable>
 
       <div className="grid-row grid-gap grid-gap-lg">
-        <TablePagination
-          gotoPage={gotoPage}
-          previousPage={previousPage}
-          nextPage={nextPage}
-          canNextPage={canNextPage}
-          pageIndex={state.pageIndex}
-          pageOptions={pageOptions}
-          canPreviousPage={canPreviousPage}
-          pageCount={pageCount}
-          pageSize={state.pageSize}
-          setPageSize={setPageSize}
-          page={[]}
-          className="desktop:grid-col-fill"
-        />
-        <TablePageSize
-          className="desktop:grid-col-auto"
-          pageSize={state.pageSize}
-          setPageSize={setPageSize}
-        />
+        {data.length > 10 && (
+          <TablePagination
+            gotoPage={gotoPage}
+            previousPage={previousPage}
+            nextPage={nextPage}
+            canNextPage={canNextPage}
+            pageIndex={state.pageIndex}
+            pageOptions={pageOptions}
+            canPreviousPage={canPreviousPage}
+            pageCount={pageCount}
+            pageSize={state.pageSize}
+            setPageSize={setPageSize}
+            page={[]}
+            className="desktop:grid-col-fill"
+          />
+        )}
+
+        {data.length > 10 && (
+          <TablePageSize
+            className="desktop:grid-col-auto"
+            pageSize={state.pageSize}
+            setPageSize={setPageSize}
+          />
+        )}
       </div>
 
       <div

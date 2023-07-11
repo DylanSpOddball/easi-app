@@ -39,6 +39,7 @@ type RequestDetailsForm = {
   businessSolution: string;
   currentStage: string;
   needsEaSupport: boolean | null;
+  hasUiChanges: boolean | null;
 };
 
 type RequestDetailsProps = {
@@ -52,7 +53,8 @@ const RequestDetails = ({ systemIntake }: RequestDetailsProps) => {
     businessNeed,
     businessSolution,
     currentStage,
-    needsEaSupport
+    needsEaSupport,
+    hasUiChanges
   } = systemIntake;
   const formikRef = useRef<FormikProps<RequestDetailsForm>>(null);
   const history = useHistory();
@@ -62,7 +64,8 @@ const RequestDetails = ({ systemIntake }: RequestDetailsProps) => {
     businessNeed: businessNeed || '',
     businessSolution: businessSolution || '',
     currentStage: currentStage || '',
-    needsEaSupport
+    needsEaSupport,
+    hasUiChanges
   };
 
   const [mutate] = useMutation<
@@ -132,13 +135,10 @@ const RequestDetails = ({ systemIntake }: RequestDetailsProps) => {
             )}
             <PageHeading>Request details</PageHeading>
             <p className="line-height-body-6">
-              Provide a detailed explanation of the business need/issue/problem
-              that the requested project will address, including any legislative
-              mandates, regulations, etc. Include any expected benefits from the
-              investment of organizational resources into this project. Please
-              be sure to indicate clearly any/all relevant deadlines (e.g.,
-              statutory deadlines that CMS must meet). Explain the benefits of
-              developing an IT solution for this need.
+              Provide a brief explanation of the business need/issue/problem
+              that the contract/request will address, including your current
+              plans for how to address the need. This page should speak to what
+              your contract/request accomplishes and how.
             </p>
             <div className="tablet:grid-col-9 margin-bottom-7">
               <div className="tablet:grid-col-6">
@@ -150,8 +150,15 @@ const RequestDetails = ({ systemIntake }: RequestDetailsProps) => {
                   error={!!flatErrors.requestName}
                 >
                   <Label htmlFor="IntakeForm-ContractName">
-                    Contract/Request Name
+                    Contract/Request Title
                   </Label>
+                  <HelpText
+                    id="IntakeForm-ContractNameHelp"
+                    className="margin-top-105"
+                  >
+                    Your request title should match the title of your
+                    Acquisition Plan or Interagency Agreement.
+                  </HelpText>
                   <FieldErrorMsg>{flatErrors.requestName}</FieldErrorMsg>
                   <Field
                     as={TextInput}
@@ -167,37 +174,19 @@ const RequestDetails = ({ systemIntake }: RequestDetailsProps) => {
                   error={!!flatErrors.businessNeed}
                 >
                   <Label htmlFor="IntakeForm-BusinessNeed">
-                    What is your business need?
+                    What is your business need that this contract/request will
+                    meet?
                   </Label>
                   <HelpText
                     id="IntakeForm-BusinessNeedHelp"
                     className="margin-top-105"
                   >
-                    <>
-                      <span>Include:</span>
-                      <ul className="margin-top-1 padding-left-205">
-                        <li>
-                          a detailed explanation of the business
-                          need/issue/problem that the request will address
-                        </li>
-                        <li>
-                          any legislative mandates or regulations that needs to
-                          be met
-                        </li>
-                        <li>
-                          any expected benefits from the investment of
-                          organizational resources into the request
-                        </li>
-                        <li>
-                          relevant deadlines (e.g., statutory deadlines that CMS
-                          must meet)
-                        </li>
-                        <li>
-                          and the benefits of developing an IT solution for this
-                          need.
-                        </li>
-                      </ul>
-                    </>
+                    Include an explanation of the business need/issue/problem
+                    that the contract/request will address. This information can
+                    be pulled from your draft Acquisition Plan (Statement of
+                    Need section) and/or taken from the Statement of Work,
+                    Statement of Objectives or Performance Work Statement.
+                    Please be brief.
                   </HelpText>
                   <FieldErrorMsg>{flatErrors.businessNeed}</FieldErrorMsg>
                   <Field
@@ -225,7 +214,11 @@ const RequestDetails = ({ systemIntake }: RequestDetailsProps) => {
                     id="IntakeForm-BusinessSolutionHelp"
                     className="margin-y-1"
                   >
-                    Let us know if you have a solution in mind
+                    Let us know if you have a solution in mind. This information
+                    can be pulled from your draft Acquisition Plan (Capability
+                    or Performance section) and/or taken from the Statement of
+                    Work, Statement of Objectives or Performance Work Statement.
+                    Please be brief.
                   </HelpText>
                   <FieldErrorMsg>{flatErrors.businessSolution}</FieldErrorMsg>
                   <Field
@@ -355,6 +348,47 @@ const RequestDetails = ({ systemIntake }: RequestDetailsProps) => {
                   </fieldset>
                 </FieldGroup>
 
+                <FieldGroup
+                  className="margin-bottom-4"
+                  scrollElement="hasUiChanges"
+                  error={!!flatErrors.hasUiChanges}
+                >
+                  <fieldset
+                    className="usa-fieldset margin-top-4"
+                    data-testid="has-ui-changes"
+                  >
+                    <legend className="usa-label margin-bottom-1">
+                      Does your project involve any user interface component, or
+                      changes to an interface component?
+                    </legend>
+                    <FieldErrorMsg>{flatErrors.hasUiChanges}</FieldErrorMsg>
+                    <Field
+                      as={Radio}
+                      checked={values.hasUiChanges === true}
+                      id="IntakeForm-HasUiChangesYes"
+                      name="hasUiChanges"
+                      label="Yes"
+                      onChange={() => {
+                        setFieldValue('hasUiChanges', true);
+                      }}
+                      value
+                      aria-describedby="IntakeForm-HasUiChanges"
+                    />
+
+                    <Field
+                      as={Radio}
+                      checked={values.hasUiChanges === false}
+                      id="IntakeForm-HasUiChangesNo"
+                      name="hasUiChanges"
+                      label="No"
+                      onChange={() => {
+                        setFieldValue('hasUiChanges', false);
+                      }}
+                      value={false}
+                    />
+                  </fieldset>
+                </FieldGroup>
+
                 <Button
                   type="button"
                   outline
@@ -427,7 +461,7 @@ const RequestDetails = ({ systemIntake }: RequestDetailsProps) => {
               }}
               debounceDelay={3000}
             />
-            <PageNumber currentPage={2} totalPages={3} />
+            <PageNumber currentPage={2} totalPages={5} />
           </>
         );
       }}

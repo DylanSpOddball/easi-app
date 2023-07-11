@@ -1,0 +1,10 @@
+@use 'uswds-core' as *;
+
+.easi-lcid {
+  &__info {
+    padding: 1rem 1rem;
+    background-color: color('info-light');
+    color: color('black');
+    line-height: 1.5;
+  }
+}

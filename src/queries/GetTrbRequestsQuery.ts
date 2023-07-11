@@ -2,11 +2,16 @@ import { gql } from '@apollo/client';
 
 export default gql`
   query GetTrbRequests {
-    trbRequestCollection(archived: false) {
+    myTrbRequests(archived: false) {
       id
       name
       status
+      state
       createdAt
+
+      form {
+        submittedAt
+      }
     }
   }
 `;

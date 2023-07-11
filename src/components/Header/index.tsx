@@ -8,8 +8,8 @@ import classnames from 'classnames';
 import { NavContext } from 'components/Header/navContext';
 import UswdsReactLink from 'components/LinkWrapper';
 import NavigationBar from 'components/NavigationBar';
-import UsGovBanner from 'components/UsGovBanner';
 import { localAuthStorageKey } from 'constants/localAuth';
+import useCheckResponsiveScreen from 'hooks/checkMobile';
 
 import './index.scss';
 
@@ -27,6 +27,8 @@ export const Header = ({ children }: HeaderProps) => {
   const dropdownNode = useRef<any>();
   const mobileSideNav = useRef<any>();
   const navbarRef = useRef<HTMLDivElement | null>(null); // Ref used for setting setNavbarHeight
+
+  const isMobile = useCheckResponsiveScreen('tablet');
 
   useEffect(() => {
     let isMounted = true;
@@ -93,8 +95,13 @@ export const Header = ({ children }: HeaderProps) => {
   };
 
   return (
-    <header className="usa-header easi-header" role="banner" ref={navbarRef}>
-      <UsGovBanner />
+    <header
+      className={classnames('usa-header easi-header', {
+        'sticky sticky-nav-header display-block navigation__content': isMobile
+      })}
+      role="banner"
+      ref={navbarRef}
+    >
       <div className="grid-container easi-header__basic">
         <div className="usa-logo site-logo" id="logo">
           <Link to="/">
@@ -134,15 +141,6 @@ export const Header = ({ children }: HeaderProps) => {
         )}
       </div>
 
-      {authState?.isAuthenticated && (
-        <NavigationBar
-          toggle={setIsMobileSideNavExpanded}
-          signout={signout}
-          userName={userName}
-        />
-      )}
-
-      <div className="grid-container easi-header--desktop ">{children}</div>
       <div
         className={classnames('usa-overlay', {
           'is-visible': isMobileSideNavExpanded

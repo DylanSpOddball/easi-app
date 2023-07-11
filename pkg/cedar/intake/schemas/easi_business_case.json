@@ -235,7 +235,6 @@
     },
     "EASILifecycleCost": {
       "required": [
-        "id",
         "solution",
         "year"
       ],
@@ -245,13 +244,6 @@
           "description": "Fiscal year cost",
           "examples": [
             "10000"
-          ]
-        },
-        "id": {
-          "type": "string",
-          "description": "Unique ID of this cost line",
-          "examples": [
-            "17f51e0f-c9ab-4d8a-8d6f-03aef2d3404d"
           ]
         },
         "phase": {

@@ -109,7 +109,6 @@ func (bc *TranslatableBusinessCase) CreateIntakeModel() (*wire.IntakeInput, erro
 
 	for _, line := range bc.LifecycleCostLines {
 		lc := intakemodels.EASILifecycleCost{
-			ID:       bcID,
 			Solution: string(line.Solution),
 			Year:     string(line.Year),
 		}

@@ -17,6 +17,8 @@ type Config struct {
 	ITInvestmentEmail      models.EmailAddress
 	AccessibilityTeamEmail models.EmailAddress
 	EASIHelpEmail          models.EmailAddress
+	TRBEmail               models.EmailAddress
+	CEDARTeamEmail         models.EmailAddress
 	URLHost                string
 	URLScheme              string
 	TemplateDirectory      string
@@ -37,18 +39,30 @@ type templates struct {
 	unnamedRequestWithdrawTemplate             templateCaller
 	issueLCIDTemplate                          templateCaller
 	extendLCIDTemplate                         templateCaller
+	lcidExpirationAlertTemplate                templateCaller
 	rejectRequestTemplate                      templateCaller
 	newAccessibilityRequestTemplate            templateCaller
 	newAccessibilityRequestToRequesterTemplate templateCaller
 	removedAccessibilityRequestTemplate        templateCaller
 	newDocumentTemplate                        templateCaller
-	intakeInvalidEUAIDTemplate                 templateCaller
-	intakeNoEUAIDTemplate                      templateCaller
 	changeAccessibilityRequestStatus           templateCaller
 	newAccessibilityRequestNote                templateCaller
 	helpSendFeedback                           templateCaller
 	helpCantFindSomething                      templateCaller
 	helpReportAProblem                         templateCaller
+	trbRequestConsultMeeting                   templateCaller
+	trbRequestTRBLeadAdmin                     templateCaller
+	trbRequestTRBLeadAssignee                  templateCaller
+	trbAdviceLetterInternalReview              templateCaller
+	trbFormSubmittedAdmin                      templateCaller
+	trbFormSubmittedRequester                  templateCaller
+	trbAttendeeAdded                           templateCaller
+	trbReadyForConsult                         templateCaller
+	trbEditsNeededOnForm                       templateCaller
+	trbRequestReopened                         templateCaller
+	trbAdviceLetterSubmitted                   templateCaller
+	trbRequestClosed                           templateCaller
+	cedarRolesChanged                          templateCaller
 }
 
 // sender is an interface for swapping out email provider implementations
@@ -125,6 +139,13 @@ func NewClient(config Config, sender sender) (Client, error) {
 	}
 	appTemplates.extendLCIDTemplate = extendLCIDTemplate
 
+	lcidExpirationAlertTemplateName := "lcid_expiration_alert.gohtml"
+	lcidExpirationAlertTemplate := rawTemplates.Lookup(lcidExpirationAlertTemplateName)
+	if lcidExpirationAlertTemplate == nil {
+		return Client{}, templateError(lcidExpirationAlertTemplateName)
+	}
+	appTemplates.lcidExpirationAlertTemplate = lcidExpirationAlertTemplate
+
 	rejectRequestTemplateName := "reject_request.gohtml"
 	rejectRequestTemplate := rawTemplates.Lookup(rejectRequestTemplateName)
 	if rejectRequestTemplate == nil {
@@ -160,20 +181,6 @@ func NewClient(config Config, sender sender) (Client, error) {
 	}
 	appTemplates.newDocumentTemplate = newDocumentTemplate
 
-	intakeInvalidEUAIDTemplateName := "intake_invalid_euaid.gohtml"
-	intakeInvalidEUAIDTemplate := rawTemplates.Lookup(intakeInvalidEUAIDTemplateName)
-	if intakeInvalidEUAIDTemplate == nil {
-		return Client{}, templateError(intakeInvalidEUAIDTemplateName)
-	}
-	appTemplates.intakeInvalidEUAIDTemplate = intakeInvalidEUAIDTemplate
-
-	intakeNoEUAIDTemplateName := "intake_no_euaid.gohtml"
-	intakeNoEUAIDTemplate := rawTemplates.Lookup(intakeNoEUAIDTemplateName)
-	if intakeNoEUAIDTemplate == nil {
-		return Client{}, templateError(intakeNoEUAIDTemplateName)
-	}
-	appTemplates.intakeNoEUAIDTemplate = intakeNoEUAIDTemplate
-
 	changeAccessibilityRequestStatusTemplateName := "change_508_status.gohtml"
 	changeAccessibilityRequestStatusTemplate := rawTemplates.Lookup(changeAccessibilityRequestStatusTemplateName)
 	if changeAccessibilityRequestStatusTemplate == nil {
@@ -208,6 +215,97 @@ func NewClient(config Config, sender sender) (Client, error) {
 		return Client{}, templateError(helpReportAProblemTemplateName)
 	}
 	appTemplates.helpReportAProblem = helpReportAProblemTemplate
+
+	trbRequestConsultMeetingTemplateName := "trb_request_consult_meeting.gohtml"
+	trbRequestConsultMeetingTemplate := rawTemplates.Lookup(trbRequestConsultMeetingTemplateName)
+	if trbRequestConsultMeetingTemplate == nil {
+		return Client{}, templateError(trbRequestConsultMeetingTemplateName)
+	}
+	appTemplates.trbRequestConsultMeeting = trbRequestConsultMeetingTemplate
+
+	trbRequestTRBLeadAdminTemplateName := "trb_request_trb_lead_admin.gohtml"
+	trbRequestTRBLeadAdminTemplate := rawTemplates.Lookup(trbRequestTRBLeadAdminTemplateName)
+	if trbRequestTRBLeadAdminTemplate == nil {
+		return Client{}, templateError(trbRequestTRBLeadAdminTemplateName)
+	}
+	appTemplates.trbRequestTRBLeadAdmin = trbRequestTRBLeadAdminTemplate
+
+	trbRequestTRBLeadAssigneeTemplateName := "trb_request_trb_lead_assignee.gohtml"
+	trbRequestTRBLeadAssigneeTemplate := rawTemplates.Lookup(trbRequestTRBLeadAssigneeTemplateName)
+	if trbRequestTRBLeadAssigneeTemplate == nil {
+		return Client{}, templateError(trbRequestTRBLeadAssigneeTemplateName)
+	}
+	appTemplates.trbRequestTRBLeadAssignee = trbRequestTRBLeadAssigneeTemplate
+
+	trbAdviceLetterInternalReviewTemplateName := "trb_advice_letter_internal_review.gohtml"
+	trbAdviceLetterInternalReviewTemplate := rawTemplates.Lookup(trbAdviceLetterInternalReviewTemplateName)
+	if trbAdviceLetterInternalReviewTemplate == nil {
+		return Client{}, templateError(trbAdviceLetterInternalReviewTemplateName)
+	}
+	appTemplates.trbAdviceLetterInternalReview = trbAdviceLetterInternalReviewTemplate
+
+	trbFormSubmittedAdminTemplateName := "trb_request_form_submission_admin.gohtml"
+	trbFormSubmittedAdminTemplate := rawTemplates.Lookup(trbFormSubmittedAdminTemplateName)
+	if trbFormSubmittedAdminTemplate == nil {
+		return Client{}, templateError(trbFormSubmittedAdminTemplateName)
+	}
+	appTemplates.trbFormSubmittedAdmin = trbFormSubmittedAdminTemplate
+
+	trbFormSubmittedRequesterTemplateName := "trb_request_form_submission_requester.gohtml"
+	trbFormSubmittedRequesterTemplate := rawTemplates.Lookup(trbFormSubmittedRequesterTemplateName)
+	if trbFormSubmittedRequesterTemplate == nil {
+		return Client{}, templateError(trbFormSubmittedRequesterTemplateName)
+	}
+	appTemplates.trbFormSubmittedRequester = trbFormSubmittedRequesterTemplate
+
+	trbAttendeeAddedTemplateName := "trb_attendee_added.gohtml"
+	trbAttendeeAddedTemplate := rawTemplates.Lookup(trbAttendeeAddedTemplateName)
+	if trbAttendeeAddedTemplate == nil {
+		return Client{}, templateError(trbAttendeeAddedTemplateName)
+	}
+	appTemplates.trbAttendeeAdded = trbAttendeeAddedTemplate
+
+	trbReadyForConsultTemplateName := "trb_ready_for_consult.gohtml"
+	trbReadyForConsultTemplate := rawTemplates.Lookup(trbReadyForConsultTemplateName)
+	if trbReadyForConsultTemplate == nil {
+		return Client{}, templateError(trbReadyForConsultTemplateName)
+	}
+	appTemplates.trbReadyForConsult = trbReadyForConsultTemplate
+
+	trbAdviceLetterSubmittedTemplateName := "trb_advice_letter_submitted.gohtml"
+	trbAdviceLetterSubmittedTemplate := rawTemplates.Lookup(trbAdviceLetterSubmittedTemplateName)
+	if trbAdviceLetterSubmittedTemplate == nil {
+		return Client{}, templateError(trbAdviceLetterSubmittedTemplateName)
+	}
+	appTemplates.trbAdviceLetterSubmitted = trbAdviceLetterSubmittedTemplate
+
+	trbEditsNeededOnFormTemplateName := "trb_edits_needed_on_form.gohtml"
+	trbEditsNeededOnFormTemplate := rawTemplates.Lookup(trbEditsNeededOnFormTemplateName)
+	if trbEditsNeededOnFormTemplate == nil {
+		return Client{}, templateError(trbEditsNeededOnFormTemplateName)
+	}
+	appTemplates.trbEditsNeededOnForm = trbEditsNeededOnFormTemplate
+
+	trbRequestClosedTemplateName := "trb_request_closed.gohtml"
+	trbRequestClosedTemplate := rawTemplates.Lookup(trbRequestClosedTemplateName)
+	if trbRequestClosedTemplate == nil {
+		return Client{}, templateError(trbRequestClosedTemplateName)
+	}
+	appTemplates.trbRequestClosed = trbRequestClosedTemplate
+
+	trbRequestReopenedTemplateName := "trb_request_reopened.gohtml"
+	trbRequestReopenedTemplate := rawTemplates.Lookup(trbRequestReopenedTemplateName)
+	if trbRequestReopenedTemplate == nil {
+		return Client{}, templateError(trbRequestReopenedTemplateName)
+	}
+	appTemplates.trbRequestReopened = trbRequestReopenedTemplate
+
+	cedarRolesChangedTemplateName := "cedar_roles_changed.gohtml"
+	cedarRolesChanged := rawTemplates.Lookup(cedarRolesChangedTemplateName)
+	if cedarRolesChanged == nil {
+		return Client{}, templateError(cedarRolesChangedTemplateName)
+	}
+	appTemplates.cedarRolesChanged = cedarRolesChanged
 
 	client := Client{
 		config:    config,

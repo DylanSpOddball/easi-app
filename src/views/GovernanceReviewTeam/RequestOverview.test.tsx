@@ -2,15 +2,13 @@ import React from 'react';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route } from 'react-router-dom';
 import { MockedProvider } from '@apollo/client/testing';
-import {
-  render,
-  screen,
-  waitForElementToBeRemoved
-} from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import configureMockStore from 'redux-mock-store';
 
 import { businessCaseInitialData } from 'data/businessCase';
+import { grtActions } from 'data/mock/grtActions';
 import { initialSystemIntakeForm } from 'data/systemIntake';
+import { MessageProvider } from 'hooks/useMessage';
 import GetAdminNotesAndActionsQuery from 'queries/GetAdminNotesAndActionsQuery';
 import GetSystemIntakeQuery from 'queries/GetSystemIntakeQuery';
 
@@ -38,8 +36,10 @@ window.matchMedia = (): any => ({
   removeListener: () => {}
 });
 
-const waitForPageLoad = async () => {
-  await waitForElementToBeRemoved(() => screen.getByTestId('page-loading'));
+const waitForPageLoad = async (testId: string = 'grt-submit-action-view') => {
+  await waitFor(() => {
+    expect(screen.getByTestId(testId)).toBeInTheDocument();
+  });
 };
 
 describe('Governance Review Team', () => {
@@ -81,6 +81,10 @@ describe('Governance Review Team', () => {
           costs: {
             isExpectingIncrease: 'YES',
             expectedIncreaseAmount: '10 million dollars'
+          },
+          annualSpending: {
+            currentAnnualSpending: 'Test Current Annual Spending',
+            plannedYearOneSpending: 'Test Planned Year One Spending'
           },
           currentStage: 'I have done some initial research',
           decisionNextSteps: null,
@@ -147,7 +151,9 @@ describe('Governance Review Team', () => {
             content: null,
             createdAt: null
           },
-          grtReviewEmailBody: null
+          grtReviewEmailBody: null,
+          hasUiChanges: true,
+          documents: []
         }
       }
     }
@@ -163,6 +169,7 @@ describe('Governance Review Team', () => {
     result: {
       data: {
         systemIntake: {
+          lcid: null,
           notes: [
             {
               id: '074632f8-44fd-4c57-851c-4577ec1af230',
@@ -180,6 +187,7 @@ describe('Governance Review Team', () => {
               createdAt: '2021-07-07T20:32:04Z',
               feedback: 'This business case needs feedback',
               type: 'PROVIDE_FEEDBACK_NEED_BIZ_CASE',
+              lcidExpirationChange: null,
               actor: {
                 name: 'Actor Name',
                 email: 'actor@example.com'
@@ -190,6 +198,7 @@ describe('Governance Review Team', () => {
               createdAt: '2021-07-07T20:22:04Z',
               feedback: null,
               type: 'SUBMIT_INTAKE',
+              lcidExpirationChange: null,
               actor: {
                 name: 'Actor Name',
                 email: 'actor@example.com'
@@ -231,14 +240,16 @@ describe('Governance Review Team', () => {
       >
         <MockedProvider mocks={[intakeQuery]} addTypename={false}>
           <Provider store={defaultStore}>
-            <Route path="/governance-review-team/:systemId/intake-request">
-              <RequestOverview />
-            </Route>
+            <MessageProvider>
+              <Route path="/governance-review-team/:systemId/intake-request">
+                <RequestOverview />
+              </Route>
+            </MessageProvider>
           </Provider>
         </MockedProvider>
       </MemoryRouter>
     );
-    await waitForPageLoad();
+    await waitForPageLoad('intake-review');
 
     expect(screen.getByTestId('grt-request-overview')).toBeInTheDocument();
     expect(screen.getByTestId('intake-review')).toBeInTheDocument();
@@ -253,16 +264,16 @@ describe('Governance Review Team', () => {
       >
         <MockedProvider mocks={[intakeQuery]} addTypename={false}>
           <Provider store={defaultStore}>
-            <Route path="/governance-review-team/:systemId/business-case">
-              <RequestOverview />
-            </Route>
+            <MessageProvider>
+              <Route path="/governance-review-team/:systemId/business-case">
+                <RequestOverview />
+              </Route>
+            </MessageProvider>
           </Provider>
         </MockedProvider>
       </MemoryRouter>
     );
-    await waitForPageLoad();
-
-    expect(screen.getByTestId('business-case-review')).toBeInTheDocument();
+    await waitForPageLoad('business-case-review');
   });
 
   it('renders GRT notes view', async () => {
@@ -278,16 +289,16 @@ describe('Governance Review Team', () => {
           addTypename={false}
         >
           <Provider store={defaultStore}>
-            <Route path="/governance-review-team/:systemId/notes">
-              <RequestOverview />
-            </Route>
+            <MessageProvider>
+              <Route path="/governance-review-team/:systemId/notes">
+                <RequestOverview />
+              </Route>
+            </MessageProvider>
           </Provider>
         </MockedProvider>
       </MemoryRouter>
     );
-    await waitForPageLoad();
-
-    expect(screen.getByTestId('grt-notes-view')).toBeInTheDocument();
+    await waitForPageLoad('grt-notes-view');
   });
 
   it('renders GRT dates view', async () => {
@@ -299,16 +310,16 @@ describe('Governance Review Team', () => {
       >
         <MockedProvider mocks={[intakeQuery]} addTypename={false}>
           <Provider store={defaultStore}>
-            <Route path="/governance-review-team/:systemId/dates">
-              <RequestOverview />
-            </Route>
+            <MessageProvider>
+              <Route path="/governance-review-team/:systemId/dates">
+                <RequestOverview />
+              </Route>
+            </MessageProvider>
           </Provider>
         </MockedProvider>
       </MemoryRouter>
     );
-    await waitForPageLoad();
-
-    expect(screen.getByTestId('grt-dates-view')).toBeInTheDocument();
+    await waitForPageLoad('grt-dates-view');
   });
 
   it('renders GRT dates view', async () => {
@@ -320,16 +331,16 @@ describe('Governance Review Team', () => {
       >
         <MockedProvider mocks={[intakeQuery]} addTypename={false}>
           <Provider store={defaultStore}>
-            <Route path="/governance-review-team/:systemId/decision">
-              <RequestOverview />
-            </Route>
+            <MessageProvider>
+              <Route path="/governance-review-team/:systemId/decision">
+                <RequestOverview />
+              </Route>
+            </MessageProvider>
           </Provider>
         </MockedProvider>
       </MemoryRouter>
     );
-    await waitForPageLoad();
-
-    expect(screen.getByTestId('grt-decision-view')).toBeInTheDocument();
+    await waitForPageLoad('grt-decision-view');
   });
 
   it('renders GRT actions view', async () => {
@@ -341,16 +352,16 @@ describe('Governance Review Team', () => {
       >
         <MockedProvider mocks={[intakeQuery]} addTypename={false}>
           <Provider store={defaultStore}>
-            <Route path="/governance-review-team/:systemId/actions">
-              <RequestOverview />
-            </Route>
+            <MessageProvider>
+              <Route path="/governance-review-team/:systemId/actions">
+                <RequestOverview />
+              </Route>
+            </MessageProvider>
           </Provider>
         </MockedProvider>
       </MemoryRouter>
     );
-    await waitForPageLoad();
-
-    expect(screen.getByTestId('grt-actions-view')).toBeInTheDocument();
+    await waitForPageLoad('grt-actions-view');
   });
 
   describe('actions', () => {
@@ -363,116 +374,42 @@ describe('Governance Review Team', () => {
         >
           <MockedProvider mocks={[intakeQuery]} addTypename={false}>
             <Provider store={defaultStore}>
-              <Route path="/governance-review-team/:systemId/actions/:activePage">
-                <RequestOverview />
-              </Route>
+              <MessageProvider>
+                <Route path="/governance-review-team/:systemId/actions/:activePage">
+                  <RequestOverview />
+                </Route>
+              </MessageProvider>
             </Provider>
           </MockedProvider>
         </MemoryRouter>
       );
     };
-    it('renders not IT request action', async () => {
-      renderPage('not-it-request');
-      await waitForPageLoad();
 
-      expect(screen.getByTestId('grt-submit-action-view')).toBeInTheDocument();
-    });
+    const actionsList = [
+      'not-it-request',
+      'need-biz-case',
+      'provide-feedback-need-biz-case',
+      'provide-feedback-keep-draft',
+      'provide-feedback-need-final',
+      'ready-for-grt',
+      'ready-for-grb',
+      'biz-case-needs-changes',
+      'no-governance',
+      'send-email',
+      'not-responding-close',
+      'issue-lcid',
+      'not-approved'
+    ];
 
-    it('renders GRT need business case action', async () => {
-      renderPage('need-biz-case');
-      await waitForPageLoad();
-
-      expect(screen.getByTestId('grt-submit-action-view')).toBeInTheDocument();
-    });
-
-    it('renders GRT feedback and need business case action', async () => {
-      renderPage('provide-feedback-need-biz-case');
-      await waitForPageLoad();
-
+    test.each(actionsList)('renders action page %j', async action => {
+      renderPage(action);
+      await waitForPageLoad(grtActions[action as keyof typeof grtActions].view);
+      const selectedAction = screen.getByTestId('grtSelectedAction');
       expect(
-        screen.getByTestId('provide-feedback-biz-case')
+        within(selectedAction).getByText(
+          grtActions[action as keyof typeof grtActions].heading
+        )
       ).toBeInTheDocument();
-    });
-
-    it('renders GRT draft business case feedback action', async () => {
-      renderPage('provide-feedback-keep-draft');
-      await waitForPageLoad();
-
-      expect(
-        screen.getByTestId('provide-feedback-biz-case')
-      ).toBeInTheDocument();
-    });
-
-    it('renders GRT final business case feedback action', async () => {
-      renderPage('provide-feedback-need-final');
-      await waitForPageLoad();
-
-      expect(
-        screen.getByTestId('provide-feedback-biz-case')
-      ).toBeInTheDocument();
-    });
-
-    it('renders ready for GRT action', async () => {
-      renderPage('ready-for-grt');
-      await waitForPageLoad();
-
-      expect(screen.getByTestId('grt-submit-action-view')).toBeInTheDocument();
-    });
-
-    it('renders ready for GRB action', async () => {
-      renderPage('ready-for-grb');
-      await waitForPageLoad();
-
-      expect(screen.getByTestId('ready-for-grb')).toBeInTheDocument();
-    });
-
-    it('renders business case not ready for GRT action', async () => {
-      renderPage('biz-case-needs-changes');
-      await waitForPageLoad();
-
-      expect(screen.getByTestId('grt-submit-action-view')).toBeInTheDocument();
-    });
-
-    it('renders no governance action', async () => {
-      renderPage('no-governance');
-      await waitForPageLoad();
-
-      expect(screen.getByTestId('grt-submit-action-view')).toBeInTheDocument();
-    });
-
-    it('renders send email action', async () => {
-      renderPage('send-email');
-      await waitForPageLoad();
-
-      expect(screen.getByTestId('grt-submit-action-view')).toBeInTheDocument();
-    });
-
-    it('renders guide received close action', async () => {
-      renderPage('guide-received-close');
-      await waitForPageLoad();
-
-      expect(screen.getByTestId('grt-submit-action-view')).toBeInTheDocument();
-    });
-
-    it('renders not responding close action', async () => {
-      renderPage('not-responding-close');
-      await waitForPageLoad();
-
-      expect(screen.getByTestId('grt-submit-action-view')).toBeInTheDocument();
-    });
-
-    it('renders not issue lcid action', async () => {
-      renderPage('issue-lcid');
-      await waitForPageLoad();
-
-      expect(screen.getByTestId('issue-lcid')).toBeInTheDocument();
-    });
-
-    it('renders not approved action', async () => {
-      renderPage('not-approved');
-      await waitForPageLoad();
-
-      expect(screen.getByTestId('not-approved')).toBeInTheDocument();
     });
   });
 });

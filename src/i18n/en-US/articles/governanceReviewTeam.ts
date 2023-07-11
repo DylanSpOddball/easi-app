@@ -39,7 +39,7 @@ const governanceReviewTeam = {
         'Do you have a clearly identified business owner?',
         'What other CMS business processes/systems/programs will you interact with?',
         'How many users would you have and who are they?',
-        'Are you compliant with the Technical Reference Architecture?',
+        'Do you align with Technical Reference Architecture guidelines?',
         'Does your Project/System need access to any CMS Enterprise Data in order to meet program objectives? PHI, PII, etc.'
       ]
     },
@@ -112,6 +112,26 @@ const governanceReviewTeam = {
     }
   },
   notes: {
+    edit: 'Edit this note',
+    editModal: {
+      header: 'Edit note',
+      description:
+        'Editing your admin note will replace the current note. If you have new information to add, please consider adding a new note. Also, editing this note will not update the original timestamp. Please add a new note if you wish to update the timestamp.',
+      contentLabel: 'Note content',
+      saveEdits: 'Save edits',
+      cancel: 'Cancel',
+      error:
+        'There was a problem saving your edits. Please try again. If the error persists, please try again at a later date.'
+    },
+    remove: 'Remove this note',
+    removeModal: {
+      header: 'Are you sure you want to remove this admin note?',
+      description: 'This action cannot be undone',
+      removeNote: 'Remove note',
+      cancel: 'Cancel',
+      error:
+        'There was a problem removing your note. Please try again. If the error persists, please try again at a later date.'
+    },
     heading: 'Admin team notes',
     addNote: 'Add a note',
     addNoteCta: 'Add note',
@@ -169,6 +189,7 @@ const governanceReviewTeam = {
   },
   aria: {
     openIntake: 'Open intake request',
+    openDocuments: 'Open documents',
     openBusiness: 'Open business case',
     openNotes: 'Open admin team notes',
     openDecision: 'Open decision',
@@ -216,13 +237,13 @@ const governanceReviewTeam = {
     changeLead: 'Change',
     notAssigned: 'Not Assigned',
     members: [
-      'Matthew Schmid',
-      'Valerie Hartz',
       'Jaime Cadwell',
       'Alex Smith',
-      'Ann Rudolph',
-      'Kyle Miller',
-      'Leilani Fields'
+      'Leilani Fields',
+      'Ashley Marks',
+      'Leah Nguyen',
+      'Emily Hill',
+      'Savannah Huttenberger'
     ]
   }
 };

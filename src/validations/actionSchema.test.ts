@@ -4,7 +4,7 @@ describe('extend lifecycle ID schema', () => {
   const defaultValues = {
     expirationDateDay: '15',
     expirationDateMonth: '2',
-    expirationDateYear: '2023',
+    expirationDateYear: '3023',
     nextSteps: 'Some new next steps',
     scope: 'A new scope'
   };
@@ -65,7 +65,7 @@ describe('extend lifecycle ID schema', () => {
       .catch((err: any) => {
         return err;
       });
-    expect(result.errors).toEqual(['Enter a valid expiration date']);
+    expect(result.errors).toEqual(['Date cannot be in the past']);
   });
 
   it('throws error for a "negative" month', async () => {

@@ -2,12 +2,13 @@ import { DateTime } from 'luxon';
 import * as Yup from 'yup';
 
 import cmsGovernanceTeams from 'constants/enums/cmsGovernanceTeams';
+import { SystemIntakeDocumentCommonType } from 'types/graphql-global-types';
 
 const governanceTeamNames = cmsGovernanceTeams.map(team => team.value);
 const SystemIntakeValidationSchema: any = {
   contactDetails: Yup.object().shape({
     requester: Yup.object().shape({
-      name: Yup.string().trim().required('Enter a name for this request'),
+      commonName: Yup.string().trim().required('Enter a name for this request'),
       component: Yup.string().required("Select the Requester's component")
     }),
     businessOwner: Yup.object().shape({
@@ -79,7 +80,9 @@ const SystemIntakeValidationSchema: any = {
     })
   }),
   requestDetails: Yup.object().shape({
-    requestName: Yup.string().trim().required('Enter the Project Name'),
+    requestName: Yup.string()
+      .trim()
+      .required('Enter the Contract/Request Title'),
     businessNeed: Yup.string().trim().required('Tell us about your request'),
     businessSolution: Yup.string()
       .trim()
@@ -87,21 +90,21 @@ const SystemIntakeValidationSchema: any = {
     currentStage: Yup.string().required('Tell us where you are in the process'),
     needsEaSupport: Yup.boolean()
       .nullable()
-      .required('Tell us if you need Enterprise Architecture (EA) support')
+      .required('Tell us if you need Enterprise Architecture (EA) support'),
+    hasUiChanges: Yup.boolean()
+      .nullable()
+      .required(
+        'Tell us if your request includes an interface component or changes'
+      )
   }),
   contractDetails: Yup.object().shape({
-    costs: Yup.object().shape({
-      isExpectingIncrease: Yup.string().required(
-        'Tell us whether you are expecting costs for this request to increase'
+    annualSpending: Yup.object().shape({
+      currentAnnualSpending: Yup.string().required(
+        'Tell us what the current annual spending for the contract'
       ),
-      expectedIncreaseAmount: Yup.string().when('isExpectingIncrease', {
-        is: 'YES',
-        then: Yup.string()
-          .trim()
-          .required(
-            'Tell us approximately how much do you expect the cost to increase'
-          )
-      })
+      plannedYearOneSpending: Yup.string().required(
+        'Tell us the planned annual spending of the first year of the new contract?'
+      )
     }),
     contract: Yup.object().shape({
       hasContract: Yup.string().required(
@@ -304,3 +307,14 @@ export const DateValidationSchema: any = Yup.object().shape(
     ['grbDateMonth', 'grbDateYear']
   ]
 );
+
+export const documentSchema = Yup.object({
+  fileData: Yup.mixed().required(),
+  documentType: Yup.mixed<SystemIntakeDocumentCommonType>()
+    .oneOf(Object.values(SystemIntakeDocumentCommonType))
+    .required(),
+  otherTypeDescription: Yup.string().when('documentType', {
+    is: 'OTHER',
+    then: schema => schema.required()
+  })
+});

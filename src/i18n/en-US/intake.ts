@@ -20,6 +20,24 @@ const intake = {
     lastAdminNote: 'Last Admin Note',
     contractNumber: 'Contract number'
   },
+  documents: {
+    title: 'Additional documentation',
+    tableTitle: 'Documents',
+    tableDescription:
+      'Upload any documents relevant to your Intake Request. This could include documents such as draft IGCEs, contracting documents such as a SOO or SOW, presentation slide decks, or other informational documents.',
+    continueWithoutDocuments: 'Continue without documents',
+    noDocuments: 'No documents uploaded',
+    formDescription:
+      'Choose a document to upload, such as a draft IGCE, contracting document, or another document related to your Intake Request.',
+    returnToIntake: "Don't upload and return to Intake Request",
+    selectDocument: 'Select your document',
+    uploadedDocuments: 'Uploaded documents',
+    type: {
+      SOO_SOW: 'SOO or SOW',
+      DRAFT_ICGE: 'Draft ICGE',
+      OTHER: 'Other'
+    }
+  },
   submission: {
     confirmation: {
       heading: 'Your Intake Request has been submitted',
@@ -77,7 +95,7 @@ const intake = {
     }
   },
   requestType: {
-    new: 'Add a new system',
+    new: 'Add a new system or service',
     recompete: 'Re-compete',
     majorChanges: 'Major change or upgrade',
     shutdown: 'Decommission a system'
@@ -103,6 +121,7 @@ const intake = {
     businessSolution: 'Business Solution',
     currentStage: 'Process Status',
     eaSupport: 'EA Support Requested',
+    hasUiChanges: 'Interface Component/Changes',
     isExpectingCostIncrease: 'Expecting Cost Increase',
     expectedIncreaseAmount: 'Expected Increase Amount',
     existingContract: 'Existing Contract',
@@ -123,14 +142,12 @@ const intake = {
   requestTypeForm: {
     heading: 'Make a Request',
     subheading: 'What is this request for?',
-    info:
-      'If you are not sure send an email to the <1>IT Navigator Mailbox</1> describing your request and a navigator will get back to you.',
     fields: {
-      addNewSystem: 'Add a new system',
-      majorChanges: 'Major changes or upgrades to an existing system',
+      addNewSystem: 'Add a new system or service',
+      majorChanges:
+        'Major changes or upgrades to an existing system or service',
       recompete:
-        'Re-compete a contract without any changes to systems or services',
-      shutdown: 'Decommission a system'
+        'Re-compete a contract without any changes to systems or services'
     },
     helpAndGuidance: {
       majorChanges: {
@@ -147,7 +164,7 @@ const intake = {
   },
   contactDetails: {
     intakeProcessDescription:
-      'The EASi System Intake process can guide you through all stages of your project, connecting you with the resources, people and services that you need. Please complete and submit this CMS IT Intake form to engage with the CMS IT Governance review process. This is the first step to receive a CMS IT LifeCycle ID. Upon submission, you will receive an email promptly from the IT_Governance mailbox, and an IT Governance Team member will reach out regarding next steps.',
+      'The EASi System Intake process can guide you through all stages of your procurement/project, connecting you with the resources, people and services that you need. Please complete and submit this CMS IT Intake form to engage with the CMS IT Governance review process. This is the first step to receive a CMS IT LifeCycle ID. Upon submission, you will receive an email promptly from the IT_Governance mailbox, and an IT Governance Team member will reach out regarding next steps.',
     heading: 'Contact details',
     requester: 'Requester',
     requesterComponent: 'Requester Component',
@@ -212,7 +229,7 @@ const intake = {
     fundingSources: {
       label: 'Which existing funding sources will fund this project?',
       helpText:
-        'If you are unsure, please get in touch with your Contracting Officer Representative (COR). If this will not use an existing funding source, skip this question.',
+        'If you are unsure, please get in touch with your Front Office. If this will not use an existing funding source, skip this question.',
       addFundingSource: 'Add a funding source',
       addAnotherFundingSource: 'Add another funding source',
       fundingNumber: 'Funding number',
@@ -248,16 +265,22 @@ const intake = {
     solving: 'How are you thinking of solving it?',
     process: 'Where are you in the process?',
     eaSupport: 'Do you need Enterprise Architecture (EA) support?',
+    hasUiChanges:
+      'Does your project involve any user interface component, or changes to an interface component?',
     contractDetails: 'Contract Details',
     costs:
       'Do the costs for this request exceed what you are currently spending to meet your business need?',
     increase: 'Approximately how much do you expect the cost to increase?',
+    currentAnnualSpending: 'What is the current annual spending?',
+    plannedYearOneSpending:
+      'What is the planned annual spending of the first year of the new contract?',
     contract: 'Do you already have a contract in place to support this effort?',
     contractors: 'Contractors',
     contractVehicle: 'Contract vehicle',
     contractNumber: 'Contract number',
     performance: 'Period of performance',
-    notEntered: 'Not Entered'
+    notEntered: 'Not Entered',
+    documents: 'Documents'
   }
 };
 

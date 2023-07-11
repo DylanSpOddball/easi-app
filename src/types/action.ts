@@ -1,7 +1,5 @@
-import { DateTime } from 'luxon';
-
 import { EmailNotificationRecipients } from './graphql-global-types';
-import { SystemIntakeContactProps } from './systemIntake';
+import { FormattedContacts, SystemIntakeContactProps } from './systemIntake';
 
 // When adding a new ActionType, please add its description in i18n/governanceReviewTeam/notes
 export type ActionType =
@@ -37,7 +35,7 @@ export type CreateActionPayload = {
  */
 export type Action = {
   id: string;
-  createdAt: DateTime;
+  createdAt: string | null;
   actorName: string;
   actorEuaUserId: string;
   intakeId: string;
@@ -57,9 +55,10 @@ export type ActionState = {
 export type ActionForm = {
   feedback: string;
   notificationRecipients: EmailNotificationRecipients;
+  shouldSendEmail: boolean;
 };
 
-export type SubmitLifecycleIdForm = {
+export interface SubmitLifecycleIdForm extends ActionForm {
   newLifecycleId?: boolean;
   lifecycleId?: string;
   expirationDateMonth?: string;
@@ -68,9 +67,7 @@ export type SubmitLifecycleIdForm = {
   scope?: string;
   nextSteps?: string;
   costBaseline?: string;
-  feedback: string;
-  notificationRecipients: EmailNotificationRecipients;
-};
+}
 
 // TODO: look into combining the submit and extend LCID?
 export type ExtendLifecycleIdForm = {
@@ -83,17 +80,16 @@ export type ExtendLifecycleIdForm = {
   feedback: string;
 };
 
-export type RejectIntakeForm = {
-  feedback: string;
+export interface RejectIntakeForm extends ActionForm {
   nextSteps: string;
   reason: string;
-  notificationRecipients: EmailNotificationRecipients;
-};
+}
 
 export type ProvideGRTFeedbackForm = {
   grtFeedback: string;
   emailBody: string;
   notificationRecipients: EmailNotificationRecipients;
+  shouldSendEmail: boolean;
 };
 
 export type EmailRecipientsFieldsProps = {
@@ -104,6 +100,7 @@ export type EmailRecipientsFieldsProps = {
   systemIntakeId: string;
   activeContact: SystemIntakeContactProps | null;
   setActiveContact: (contact: SystemIntakeContactProps | null) => void;
+  contacts: FormattedContacts;
   recipients: EmailNotificationRecipients;
   setRecipients: (recipients: EmailNotificationRecipients) => void;
   error: string;

@@ -1,5 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { CSVLink } from 'react-csv';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
@@ -13,19 +12,16 @@ import {
   useTable
 } from 'react-table';
 import {
-  Breadcrumb,
-  BreadcrumbBar,
-  BreadcrumbLink,
+  ButtonGroup,
+  GridContainer,
   IconError,
-  IconFileDownload,
   Table
 } from '@trussworks/react-uswds';
 import classnames from 'classnames';
-import { DateTime } from 'luxon';
 
 import UswdsReactLink from 'components/LinkWrapper';
-import MainContent from 'components/MainContent';
 import PageHeading from 'components/PageHeading';
+import CsvDownloadLink from 'components/shared/CsvDownloadLink';
 import TruncatedText from 'components/shared/TruncatedText';
 import GlobalClientFilter from 'components/TableFilter';
 import TablePageSize from 'components/TablePageSize';
@@ -33,17 +29,19 @@ import TablePagination from 'components/TablePagination';
 import TableResults from 'components/TableResults';
 import { convertIntakeToCSV } from 'data/systemIntake';
 import useCheckResponsiveScreen from 'hooks/checkMobile';
+import useTableState from 'hooks/useTableState';
 import { GetSystemIntake_systemIntake_lastAdminNote as LastAdminNote } from 'queries/types/GetSystemIntake';
 import { AppState } from 'reducers/rootReducer';
 import { fetchSystemIntakes } from 'types/routines';
 import { SystemIntakeForm } from 'types/systemIntake';
-import { formatDate } from 'utils/date';
-import globalTableFilter from 'utils/globalTableFilter';
+import { formatDateLocal, formatDateUtc } from 'utils/date';
+import globalFilterCellText from 'utils/globalFilterCellText';
 import {
   getColumnSortStatus,
   getHeaderSortIcon,
   sortColumnValues
 } from 'utils/tableSort';
+import { ActiveStateType, TableStateContext } from 'views/TableStateWrapper';
 
 import csvHeaderMap from './csvHeaderMap';
 import tableMap from './tableMap';
@@ -51,24 +49,32 @@ import tableMap from './tableMap';
 import './index.scss';
 
 const RequestRepository = () => {
-  type TableTypes = 'open' | 'closed';
   const isMobile = useCheckResponsiveScreen('tablet');
   const { t } = useTranslation('governanceReviewTeam');
   const dispatch = useDispatch();
 
-  const [activeTable, setActiveTable] = useState<TableTypes>('open');
+  const { itGovAdmin } = useContext(TableStateContext);
+
+  const [activeTable, setActiveTable] = useState<ActiveStateType>(
+    itGovAdmin.current.activeTableState
+  );
+
+  const defaultPageSize: number = window.localStorage['request-table-page-size']
+    ? Number(window.localStorage['request-table-page-size'])
+    : 50;
 
   // Last sort states on active tables with their initial sort rules
   const [lastSort, setLastSort] = useState<
-    Record<TableTypes, SortingRule<object>[]>
+    Record<ActiveStateType, SortingRule<{}>[]>
   >({
     open: [{ id: 'submittedAt', desc: true }],
     closed: [{ id: 'lastAdminNote', desc: true }]
   });
 
   // Select an active table and restore its last sort state
-  function selectActiveTable(nextActiveTable: TableTypes) {
+  function selectActiveTable(nextActiveTable: ActiveStateType) {
     if (nextActiveTable === activeTable) return;
+    gotoPage(0);
     setLastSort(prev => ({ ...prev, [activeTable]: state.sortBy }));
     setActiveTable(nextActiveTable);
     setSortBy(lastSort[nextActiveTable]);
@@ -88,7 +94,7 @@ const RequestRepository = () => {
     accessor: 'submittedAt',
     Cell: ({ value }: any) => {
       if (value) {
-        return DateTime.fromISO(value).toLocaleString(DateTime.DATE_FULL);
+        return formatDateLocal(value, 'MM/dd/yyyy');
       }
 
       return t('requestRepository.table.submissionDate.null');
@@ -152,7 +158,7 @@ const RequestRepository = () => {
           </UswdsReactLink>
         );
       }
-      return formatDate(value);
+      return formatDateUtc(value, 'MM/dd/yyyy');
     }
   };
 
@@ -170,7 +176,7 @@ const RequestRepository = () => {
           </UswdsReactLink>
         );
       }
-      return formatDate(value);
+      return formatDateUtc(value, 'MM/dd/yyyy');
     }
   };
 
@@ -208,7 +214,7 @@ const RequestRepository = () => {
     accessor: 'lcidExpiresAt',
     Cell: ({ value }: any) => {
       if (value) {
-        return DateTime.fromISO(value).toLocaleString(DateTime.DATE_FULL);
+        return formatDateUtc(value, 'MM/dd/yyyy');
       }
 
       // If no LCID Expiration exists, display 'No LCID Issued'
@@ -225,9 +231,8 @@ const RequestRepository = () => {
           // Display admin note using truncated text field that
           // will display note with expandable extra text (if applicable)
           <>
-            {DateTime.fromISO(value.createdAt!).toLocaleString(
-              DateTime.DATE_FULL
-            )}
+            {formatDateLocal(value.createdAt!, 'MM/dd/yyyy')}
+
             <TruncatedText
               id="last-admin-note"
               label="less"
@@ -303,6 +308,7 @@ const RequestRepository = () => {
     state,
     page,
     prepareRow,
+    rows,
     setSortBy
   } = useTable(
     {
@@ -315,13 +321,13 @@ const RequestRepository = () => {
           );
         }
       },
-      globalFilter: useMemo(() => globalTableFilter, []),
+      globalFilter: useMemo(() => globalFilterCellText, []),
       data,
       autoResetSortBy: false,
       autoResetPage: false,
       initialState: {
         sortBy: useMemo(() => lastSort[activeTable], [lastSort, activeTable]),
-        pageSize: 50
+        pageSize: defaultPageSize
       }
     },
     useFilters,
@@ -330,69 +336,84 @@ const RequestRepository = () => {
     usePagination
   );
 
+  rows.map(row => prepareRow(row));
+
   const csvHeaders = csvHeaderMap(t);
 
   const convertIntakesToCSV = (intakes: any[]) => {
     return intakes.map(intake => convertIntakeToCSV(intake));
   };
 
+  // Sets persisted table state and stores state on unmount
+  useTableState(
+    'itGovAdmin',
+    state,
+    gotoPage,
+    setSortBy,
+    setGlobalFilter,
+    activeTable,
+    data
+  );
+
   return (
-    <MainContent className="padding-x-4 margin-bottom-5">
-      <div className="display-flex flex-justify flex-wrap margin-bottom-2">
-        <BreadcrumbBar variant="wrap">
-          <Breadcrumb>
-            <BreadcrumbLink asCustom={Link} to="/">
-              <span>Home</span>
-            </BreadcrumbLink>
-          </Breadcrumb>
-          <Breadcrumb current>Requests</Breadcrumb>
-        </BreadcrumbBar>
-        <CSVLink
-          className="flex-align-self-center text-no-underline"
-          data={convertIntakesToCSV(data)}
-          filename="request-repository.csv"
-          headers={csvHeaders}
-        >
-          <IconFileDownload />
-          &nbsp;{' '}
-          <span className="text-underline">
-            Download all requests as excel file
-          </span>
-        </CSVLink>
-      </div>
-      <nav aria-label="Request Repository Table Navigation">
-        <ul className="easi-request-repo__tab-list">
+    <div className="padding-x-4 margin-bottom-5">
+      <GridContainer>
+        <ButtonGroup className="trb-admin-team-home-actions margin-bottom-2 margin-top-1 line-height-body-5">
+          <CsvDownloadLink
+            data={convertIntakesToCSV(data)}
+            filename="request-repository.csv"
+            headers={csvHeaders}
+          >
+            {t('home:adminHome.GRT.csvDownloadLabel')}
+          </CsvDownloadLink>
+        </ButtonGroup>
+      </GridContainer>
+
+      <nav
+        aria-label={t(
+          'technicalAssistance:adminTeamHome.existingRequests.tabs.label'
+        )}
+      >
+        <ul className="easi-request-repo__tab-list margin-bottom-4 margin-top-0">
           <li
-            className={classnames('easi-request-repo__tab', {
+            className={classnames('easi-request-repo__tab font-body-2xs', {
               'easi-request-repo__tab--active': activeTable === 'open'
             })}
           >
             <button
               type="button"
-              className="easi-request-repo__tab-btn"
+              className={`easi-request-repo__tab-btn line-height-body-3 text-${
+                activeTable === 'open' ? 'primary' : 'base-dark'
+              }`}
               onClick={() => selectActiveTable('open')}
               aria-label={
                 activeTable === 'open' ? 'Open requests selected' : ''
               }
             >
-              Open Requests
+              {t(
+                'technicalAssistance:adminTeamHome.existingRequests.tabs.open.name'
+              )}
             </button>
           </li>
           <li
-            className={classnames('easi-request-repo__tab', {
+            className={classnames('easi-request-repo__tab font-body-2xs', {
               'easi-request-repo__tab--active': activeTable === 'closed'
             })}
           >
             <button
               type="button"
-              className="easi-request-repo__tab-btn"
+              className={`easi-request-repo__tab-btn line-height-body-3 text-${
+                activeTable === 'closed' ? 'primary' : 'base-dark'
+              }`}
               onClick={() => selectActiveTable('closed')}
               data-testid="view-closed-intakes-btn"
               aria-label={
                 activeTable === 'closed' ? 'Closed requests selected' : ''
               }
             >
-              Closed Requests
+              {t(
+                'technicalAssistance:adminTeamHome.existingRequests.tabs.closed.name'
+              )}
             </button>
           </li>
         </ul>
@@ -407,6 +428,7 @@ const RequestRepository = () => {
 
       <GlobalClientFilter
         setGlobalFilter={setGlobalFilter}
+        initialFilter={itGovAdmin.current.state.globalFilter}
         tableID={t('requestRepository.id')}
         tableName={t('requestRepository.title')}
         className="margin-bottom-4"
@@ -461,7 +483,6 @@ const RequestRepository = () => {
         </thead>
         <tbody {...getTableBodyProps()}>
           {page.map((row: Row) => {
-            prepareRow(row);
             return (
               // @ts-ignore
               <tr {...row.getRowProps()} data-testid={`${row.original.id}-row`}>
@@ -513,7 +534,7 @@ const RequestRepository = () => {
           setPageSize={setPageSize}
         />
       </div>
-    </MainContent>
+    </div>
   );
 };
 

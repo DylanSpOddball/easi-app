@@ -1,12 +1,14 @@
 describe('The Task List', () => {
   beforeEach(() => {
-    cy.server();
     cy.localLogin({ name: 'TEST' });
-    cy.route('PUT', '/api/v1/system_intake').as('putSystemIntake');
+    cy.intercept('PUT', '/api/v1/system_intake').as('putSystemIntake');
 
     cy.intercept('POST', '/api/graph/query', req => {
       if (req.body.operationName === 'UpdateSystemIntakeContactDetails') {
         req.alias = 'updateContactDetails';
+      }
+      if (req.body.operationName === 'GetSystemIntakeContactsQuery') {
+        req.alias = 'getSystemIntakeContacts';
       }
     });
 
@@ -19,6 +21,10 @@ describe('The Task List', () => {
   it('shows a continue link when a user clicks back until they reach the task list', () => {
     cy.wait(1000);
     cy.get('[data-testid="intake-start-btn"]').should('be.visible').click();
+
+    cy.wait('@getSystemIntakeContacts')
+      .its('response.statusCode')
+      .should('eq', 200);
 
     cy.systemIntake.contactDetails.fillNonBranchingFields();
     cy.get('#IntakeForm-HasIssoNo').check({ force: true }).should('be.checked');

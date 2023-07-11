@@ -18,7 +18,6 @@ import {
 import classnames from 'classnames';
 import { useFlags } from 'launchdarkly-react-client-sdk';
 import { startCase } from 'lodash';
-import { DateTime } from 'luxon';
 
 import MainContent from 'components/MainContent';
 import PageHeading from 'components/PageHeading';
@@ -46,13 +45,14 @@ import {
   AtoStatus,
   CedarRoleAssigneePerson,
   DevelopmentTag,
-  RoleTypeId,
+  RoleTypeName,
   SubpageKey,
   SystemProfileData,
   UrlLocation,
   UrlLocationTag,
   UsernameWithRoles
 } from 'types/systemProfile';
+import { formatDateUtc, parseAsUTC } from 'utils/date';
 import NotFound from 'views/NotFound';
 import {
   activities as mockActivies,
@@ -62,17 +62,15 @@ import {
   systemData as mockSystemData
 } from 'views/Sandbox/mockSystemData';
 
+import EditPageCallout from './components/EditPageCallout';
 // components/index contains all the sideNavItems components, routes, labels and translations
 // The sideNavItems object keys are mapped to the url param - 'subinfo'
 import sideNavItems from './components/index';
 import SystemSubNav from './components/SystemSubNav/index';
+import EditTeam from './components/Team/Edit';
 import PointsOfContactSidebar from './PointsOfContactSidebar';
 
 import './index.scss';
-
-export function formatDate(v: string) {
-  return DateTime.fromISO(v).toLocaleString(DateTime.DATE_FULL);
-}
 
 function httpsUrl(url: string): string {
   if (/^https?/.test(url)) {
@@ -93,21 +91,19 @@ export function getAtoStatus(
   // No ato if it doesn't exist
   if (!cedarAuthorityToOperate) return 'No ATO';
 
-  // return 'In Progress'; // tbd
+  // return 'In progress'; // tbd
 
   const { dateAuthorizationMemoExpires } = cedarAuthorityToOperate;
 
   if (!dateAuthorizationMemoExpires) return 'No ATO';
 
-  const expiry = DateTime.fromISO(dateAuthorizationMemoExpires)
-    .toUTC()
-    .toString();
+  const expiry = parseAsUTC(dateAuthorizationMemoExpires).toString();
 
   const date = new Date().toISOString();
 
   if (date >= expiry) return 'Expired';
 
-  const soon = DateTime.fromISO(expiry)
+  const soon = parseAsUTC(expiry)
     .minus({ days: ATO_STATUS_DUE_SOON_DAYS })
     .toString();
   if (date >= soon) return 'Due Soon';
@@ -227,7 +223,7 @@ export function getSystemProfileData(
   ) as CedarRoleAssigneePerson[];
 
   const businessOwners = personRoles.filter(
-    role => role.roleTypeID === RoleTypeId.BUSINESS_OWNER
+    role => role.roleTypeName === RoleTypeName.BUSINESS_OWNER
   );
 
   const usernamesWithRoles = getUsernamesWithRoles(personRoles);
@@ -283,7 +279,10 @@ export function showAtoExpirationDate(
 ): React.ReactNode {
   return showVal(
     systemProfileAto?.dateAuthorizationMemoExpires &&
-      formatDate(systemProfileAto.dateAuthorizationMemoExpires)
+      formatDateUtc(
+        systemProfileAto.dateAuthorizationMemoExpires,
+        'MMMM d, yyyy'
+      )
   );
 }
 
@@ -324,10 +323,11 @@ const SystemProfile = ({ id, modal }: SystemProfileProps) => {
   const params = useParams<{
     subinfo: SubpageKey;
     systemId: string;
+    edit?: 'edit';
     top: string;
   }>();
 
-  const { subinfo, top } = params;
+  const { subinfo, top, edit } = params;
   const systemId = id || params.systemId;
 
   const [modalSubpage, setModalSubpage] = useState<SubpageKey>('home');
@@ -438,6 +438,17 @@ const SystemProfile = ({ id, modal }: SystemProfileProps) => {
   const subpageKey: SubpageKey = subinfo || modalSubpage || 'home';
 
   const subComponent = subComponents[subpageKey];
+
+  if (subinfo === 'team' && edit) {
+    return (
+      <EditTeam
+        name={cedarSystem.name}
+        team={systemProfileData.usernamesWithRoles}
+        numberOfFederalFte={systemProfileData.numberOfFederalFte}
+        numberOfContractorFte={systemProfileData.numberOfContractorFte}
+      />
+    );
+  }
 
   return (
     <MainContent>
@@ -602,16 +613,25 @@ const SystemProfile = ({ id, modal }: SystemProfileProps) => {
           setModalSubpage={setModalSubpage}
         />
 
-        <SectionWrapper className="margin-top-5 margin-bottom-5">
+        <SectionWrapper className="margin-bottom-5">
           <GridContainer className={classnames({ 'maxw-none': modal })}>
             <Grid row gap>
               {!isMobile && (
                 <Grid
                   desktop={{ col: 3 }}
-                  className="padding-right-4 sticky-nav"
+                  className="padding-right-4 sticky side-nav"
                 >
                   {/* Side navigation for single system */}
                   <SideNav items={subNavigationLinks} />
+
+                  {subinfo === 'team' && (
+                    <EditPageCallout
+                      className="margin-top-3"
+                      // TODO: Get system modifiedAt value and add to props
+                      // modifiedAt={}
+                    />
+                  )}
+
                   {/* Setting a ref here to reference the grid width for the fixed side nav */}
                   {modal && (
                     <>
@@ -631,7 +651,10 @@ const SystemProfile = ({ id, modal }: SystemProfileProps) => {
                   <GridContainer className="padding-left-0 padding-right-0">
                     <Grid row gap>
                       {/* Central component */}
-                      <Grid desktop={{ col: modal ? 12 : 8 }}>
+                      <Grid
+                        desktop={{ col: modal ? 12 : 8 }}
+                        className="padding-top-3"
+                      >
                         {subComponent.component}
                       </Grid>
 
@@ -640,7 +663,8 @@ const SystemProfile = ({ id, modal }: SystemProfileProps) => {
                         <Grid
                           desktop={{ col: 4 }}
                           className={classnames({
-                            'sticky-nav': !isMobile
+                            'sticky side-nav padding-top-7': !isMobile,
+                            'margin-top-3': isMobile
                           })}
                         >
                           {/* Setting a ref here to reference the grid width for the fixed side nav */}
@@ -652,6 +676,13 @@ const SystemProfile = ({ id, modal }: SystemProfileProps) => {
                               systemId={systemId}
                             />
                           </div>
+                          {subinfo === 'team' && isMobile && (
+                            <EditPageCallout
+                              className="margin-top-4"
+                              // TODO: Get system modifiedAt value and add to props
+                              // modifiedAt={}
+                            />
+                          )}
                         </Grid>
                       )}
                     </Grid>

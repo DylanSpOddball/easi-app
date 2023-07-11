@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Fieldset, Label, Link } from '@trussworks/react-uswds';
 import classNames from 'classnames';
@@ -45,18 +45,18 @@ export const FundingSourcesListItem = ({
       className={classNames('funding-source', className)}
       id={`fundingNumber-${fundingNumber}`}
     >
-      <p className="text-bold font-body-sm">
+      <p className="text-bold font-body-sm margin-bottom-0">
         {t('contractDetails.fundingSources.fundingSource')}
       </p>
-      <p>{fundingNumberText}</p>
-      <p>{fundingSourceText}</p>
+      <p className="margin-y-05">{fundingNumberText}</p>
+      <p className="margin-y-05">{fundingSourceText}</p>
       {handleEdit && (
         <Button
           unstyled
           small
           onClick={() => handleEdit()}
           type="button"
-          className="margin-right-1"
+          className="margin-right-1 margin-top-1"
           data-testid="fundingSourcesAction-delete"
         >
           {t('Edit')}
@@ -68,7 +68,7 @@ export const FundingSourcesListItem = ({
           small
           onClick={() => handleDelete()}
           type="button"
-          className="text-error"
+          className="text-error margin-top-1"
           data-testid="fundingSourcesAction-delete"
         >
           {t('Delete')}
@@ -84,7 +84,7 @@ type FundingSourceFormProps = {
   fundingSources: FormattedFundingSourcesObject;
   setFundingSources: ({ action, data }: UpdateFundingSources) => void;
   fundingSourceOptions: string[];
-  action: 'Add' | 'Edit' | 'Reset';
+  action: 'Add' | 'Edit' | null;
 };
 
 const FundingSourceForm = ({
@@ -138,8 +138,10 @@ const FundingSourceForm = ({
       );
     }
 
-    // Set errors
-    setErrors(updatedErrors);
+    if (updatedErrors.fundingNumber || updatedErrors.sources) {
+      // Set errors
+      setErrors(updatedErrors);
+    }
 
     // If no errors, update funding sources
     if (!updatedErrors.fundingNumber && !updatedErrors.sources) {
@@ -161,6 +163,10 @@ const FundingSourceForm = ({
         });
       }
     }
+
+    return {
+      err: updatedErrors
+    };
   };
   return (
     <>
@@ -236,7 +242,7 @@ const FundingSourceForm = ({
         type="button"
         onClick={() =>
           setActiveFundingSource({
-            action: 'Reset'
+            action: null
           })
         }
         className="display-inline-block margin-top-2"
@@ -247,7 +253,14 @@ const FundingSourceForm = ({
       </Button>
       <Button
         type="button"
-        onClick={() => onSubmit()}
+        onClick={() => {
+          const { err } = onSubmit();
+          if (!err) {
+            setActiveFundingSource({
+              action: null
+            });
+          }
+        }}
         className="display-inline-block margin-top-2"
         data-testid="fundingSourcesAction-save"
       >
@@ -258,20 +271,27 @@ const FundingSourceForm = ({
 };
 
 type FundingSourcesProps = {
+  id?: string;
   initialValues: FundingSource[];
   fundingSourceOptions: string[];
   setFieldValue: (field: string, value: any) => void;
+  setFieldActive?: (active: boolean) => void;
+  combinedFields?: boolean;
 };
 
 const FundingSources = ({
+  id,
   initialValues,
   fundingSourceOptions,
-  setFieldValue
+  setFieldValue,
+  setFieldActive,
+  combinedFields = false
 }: FundingSourcesProps) => {
   // Get funding sources actions from useIntakeFundingSources custom hook
   const fundingSourcesData = useIntakeFundingSources(
     initialValues,
-    setFieldValue
+    setFieldValue,
+    combinedFields
   );
   const [fundingSources, setFundingSources] = fundingSourcesData.fundingSources;
   const [
@@ -282,11 +302,15 @@ const FundingSources = ({
   const { t } = useTranslation('intake');
   const editFundingSourceNumber = useRef('');
 
+  useEffect(() => {
+    setFieldActive?.(!!action);
+  }, [action, setFieldActive]);
+
   return (
     <>
       {Object.keys(fundingSources).length > 0 && (
         <ul
-          id="Intake-Form-ExistingFundingSources"
+          id={id || 'Intake-Form-ExistingFundingSources'}
           className="usa-list--unstyled margin-bottom-4 margin-top-3"
         >
           {Object.values(fundingSources).map(fundingSource => {
@@ -334,7 +358,7 @@ const FundingSources = ({
           action={action}
         />
       )}
-      {action === 'Reset' && (
+      {!action && (
         <Button
           type="button"
           data-testid="fundingSourcesAction-add"

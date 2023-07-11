@@ -1,13 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import ReactGA from 'react-ga4';
 import { Provider } from 'react-redux';
-import {
-  ApolloClient,
-  ApolloProvider,
-  createHttpLink,
-  InMemoryCache
-} from '@apollo/client';
+import { ApolloClient, ApolloProvider, InMemoryCache } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
+import { createUploadLink } from 'apollo-upload-client';
 import axios from 'axios';
 import { detect } from 'detect-browser';
 import { TextEncoder } from 'text-encoding';
@@ -24,6 +21,15 @@ import store from './store';
 import './index.scss';
 
 const apiHost = new URL(process.env.REACT_APP_API_ADDRESS || '').host;
+
+// Initialize tracker for Google Analytics
+ReactGA.initialize([
+  {
+    trackingId: 'G-B01YHRZXNY',
+    gaOptions: {}, // optional
+    gtagOptions: {} // optional
+  }
+]);
 
 /**
  * Extract auth token from local storage and return a header
@@ -55,7 +61,7 @@ function getAuthHeader(targetUrl: string) {
 /**
  * Setup client for GraphQL
  */
-const httpLink = createHttpLink({
+const uploadLink = createUploadLink({
   uri: process.env.REACT_APP_GRAPHQL_ADDRESS
 });
 
@@ -69,12 +75,27 @@ const authLink = setContext((request, { headers }) => {
   };
 });
 
-const typePolicies = {};
-
 const client = new ApolloClient({
-  link: authLink.concat(httpLink),
+  link: authLink.concat(uploadLink),
   cache: new InMemoryCache({
-    typePolicies
+    typePolicies: {
+      cedarSystemDetails: {
+        merge: true
+      },
+      TRBRequest: {
+        fields: {
+          taskStatuses: {
+            merge: true
+          },
+          trbLeadInfo: {
+            merge: true
+          },
+          requesterInfo: {
+            merge: true
+          }
+        }
+      }
+    }
   }),
   defaultOptions: {
     watchQuery: {

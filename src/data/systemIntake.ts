@@ -6,7 +6,8 @@ import {
   GovernanceCollaborationTeam,
   SystemIntakeForm
 } from 'types/systemIntake';
-import { formatContractDate, formatDate, parseAsDate } from 'utils/date';
+import { cleanCSVData } from 'utils/csv';
+import { formatContractDate, formatDateLocal, parseAsUTC } from 'utils/date';
 // On the frontend, the field is now "requestName", but the backend API
 // has it as "projectName". This was an update from design.
 export const initialSystemIntakeForm: SystemIntakeForm = {
@@ -38,9 +39,9 @@ export const initialSystemIntakeForm: SystemIntakeForm = {
   },
   existingFunding: null,
   fundingSources: [],
-  costs: {
-    isExpectingIncrease: '',
-    expectedIncreaseAmount: ''
+  annualSpending: {
+    currentAnnualSpending: '',
+    plannedYearOneSpending: ''
   },
   contract: {
     hasContract: '',
@@ -77,7 +78,9 @@ export const initialSystemIntakeForm: SystemIntakeForm = {
   grbDate: null,
   adminLead: '',
   lastAdminNote: null,
-  lcidCostBaseline: ''
+  lcidCostBaseline: '',
+  requesterNameAndComponent: '',
+  hasUiChanges: null
 };
 
 export const prepareSystemIntakeForApi = (systemIntake: SystemIntakeForm) => {
@@ -116,8 +119,6 @@ export const prepareSystemIntakeForApi = (systemIntake: SystemIntakeForm) => {
     eaSupportRequest: systemIntake.needsEaSupport,
     existingContract: systemIntake.contract.hasContract,
     grtReviewEmailBody: systemIntake.grtReviewEmailBody,
-    costIncrease: systemIntake.costs.isExpectingIncrease,
-    costIncreaseAmount: systemIntake.costs.expectedIncreaseAmount,
     contractor: systemIntake.contract.contractor,
     contractNumber: systemIntake.contract.number,
     contractStartDate: DateTime.fromObject({
@@ -130,10 +131,11 @@ export const prepareSystemIntakeForApi = (systemIntake: SystemIntakeForm) => {
       month: Number(systemIntake.contract.endDate.month),
       year: Number(systemIntake.contract.endDate.year)
     }),
-    grtDate: systemIntake.grtDate && systemIntake.grtDate.toISO(),
-    grbDate: systemIntake.grbDate && systemIntake.grbDate.toISO(),
-    submittedAt: systemIntake.submittedAt && systemIntake.submittedAt.toISO(),
-    adminLead: systemIntake.adminLead
+    grtDate: systemIntake.grtDate,
+    grbDate: systemIntake.grbDate,
+    submittedAt: systemIntake.submittedAt,
+    adminLead: systemIntake.adminLead,
+    hasUiChanges: systemIntake.hasUiChanges
   };
 };
 
@@ -154,8 +156,8 @@ export const prepareSystemIntakeForApp = (
     return teams;
   };
 
-  const contractStartDate = parseAsDate(systemIntake.contractStartDate);
-  const contractEndDate = parseAsDate(systemIntake.contractEndDate);
+  const contractStartDate = parseAsUTC(systemIntake.contractStartDate);
+  const contractEndDate = parseAsUTC(systemIntake.contractEndDate);
 
   return {
     id: systemIntake.id || '',
@@ -186,9 +188,9 @@ export const prepareSystemIntakeForApp = (
     },
     existingFunding: systemIntake.existingFunding,
     fundingSources: systemIntake.fundingSources || [],
-    costs: {
-      isExpectingIncrease: systemIntake.costIncrease || '',
-      expectedIncreaseAmount: systemIntake.costIncreaseAmount || ''
+    annualSpending: {
+      currentAnnualSpending: systemIntake.currentAnnualSpending || '',
+      plannedYearOneSpending: systemIntake.plannedYearOneSpending || ''
     },
     contract: {
       hasContract: systemIntake.existingContract || '',
@@ -221,31 +223,19 @@ export const prepareSystemIntakeForApp = (
         ? null
         : systemIntake.eaSupportRequest,
     grtReviewEmailBody: systemIntake.grtReviewEmailBody || '',
-    decidedAt: systemIntake.decidedAt
-      ? DateTime.fromISO(systemIntake.decidedAt)
-      : null,
+    decidedAt: systemIntake.decidedAt,
     businessCaseId: systemIntake.businessCase || null,
-    submittedAt: systemIntake.submittedAt
-      ? DateTime.fromISO(systemIntake.submittedAt)
-      : null,
-    updatedAt: systemIntake.updatedAt
-      ? DateTime.fromISO(systemIntake.updatedAt)
-      : null,
-    createdAt: systemIntake.createdAt
-      ? DateTime.fromISO(systemIntake.createdAt)
-      : null,
-    archivedAt: systemIntake.archivedAt
-      ? DateTime.fromISO(systemIntake.archivedAt)
-      : null,
+    submittedAt: systemIntake.submittedAt,
+    updatedAt: systemIntake.updatedAt,
+    createdAt: systemIntake.createdAt,
+    archivedAt: systemIntake.archivedAt,
     lcid: systemIntake.lcid || '',
-    lcidExpiresAt: systemIntake.lcidExpiresAt
-      ? DateTime.fromISO(systemIntake.lcidExpiresAt)
-      : null,
+    lcidExpiresAt: systemIntake.lcidExpiresAt,
     lcidScope: systemIntake.lcidScope || '',
     decisionNextSteps: systemIntake.decisionNextSteps || '',
     rejectionReason: systemIntake.rejectionReason || '',
-    grtDate: systemIntake.grtDate ? parseAsDate(systemIntake.grtDate) : null,
-    grbDate: systemIntake.grbDate ? parseAsDate(systemIntake.grbDate) : null,
+    grtDate: systemIntake.grtDate,
+    grbDate: systemIntake.grbDate,
     adminLead: systemIntake.adminLead || '',
     lastAdminNote: systemIntake.lastAdminNoteContent
       ? {
@@ -253,7 +243,10 @@ export const prepareSystemIntakeForApp = (
           createdAt: systemIntake.lastAdminNoteCreatedAt
         }
       : null,
-    lcidCostBaseline: ''
+    lcidCostBaseline: '',
+    requesterNameAndComponent: '',
+    hasUiChanges:
+      systemIntake.hasUiChanges === null ? null : systemIntake.hasUiChanges
   };
 };
 
@@ -279,12 +272,13 @@ export const convertIntakeToCSV = (
     });
   }
 
-  return {
+  return cleanCSVData({
     ...intake,
     ...collaboratorTeams,
     lastAdminNote: intake.lastAdminNote
-      ? `${intake.lastAdminNote.content} (${formatDate(
-          intake.lastAdminNote.createdAt
+      ? `${intake.lastAdminNote.content} (${formatDateLocal(
+          intake.lastAdminNote.createdAt,
+          'MMMM d, yyyy'
         )})`
       : null,
     lcidScope: intake.lcidScope,
@@ -298,12 +292,12 @@ export const convertIntakeToCSV = (
     )
       ? formatContractDate(intake.contract.endDate)
       : '',
-    submittedAt: intake.submittedAt && intake.submittedAt.toISO(),
-    updatedAt: intake.updatedAt && intake.updatedAt.toISO(),
-    createdAt: intake.createdAt && intake.createdAt.toISO(),
-    decidedAt: intake.decidedAt && intake.decidedAt.toISO(),
-    archivedAt: intake.archivedAt && intake.archivedAt.toISO()
-  };
+    submittedAt: intake.submittedAt,
+    updatedAt: intake.updatedAt,
+    createdAt: intake.createdAt,
+    decidedAt: intake.decidedAt,
+    archivedAt: intake.archivedAt
+  });
 };
 
 /**
@@ -326,8 +320,8 @@ export const isIntakeStarted = (intake: SystemIntake | SystemIntakeForm) => {
     intake.governanceTeams.isPresent ||
     (intake.governanceTeams.teams && intake.governanceTeams.teams.length > 0) ||
     intake.fundingSources.length > 0 ||
-    intake.costs.isExpectingIncrease ||
-    intake.costs.expectedIncreaseAmount ||
+    intake.annualSpending?.currentAnnualSpending ||
+    intake.annualSpending?.plannedYearOneSpending ||
     intake.contract.hasContract ||
     intake.contract.contractor ||
     intake.contract.number ||
@@ -338,6 +332,7 @@ export const isIntakeStarted = (intake: SystemIntake | SystemIntakeForm) => {
     intake.businessNeed ||
     intake.businessSolution ||
     intake.currentStage ||
-    intake.needsEaSupport
+    intake.needsEaSupport ||
+    intake.hasUiChanges
   );
 };

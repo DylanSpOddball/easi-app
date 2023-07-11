@@ -54,15 +54,19 @@ func (s Server) NewEmailConfig() email.Config {
 	s.checkRequiredConfig(appconfig.ITInvestmentEmailKey)
 	s.checkRequiredConfig(appconfig.AccessibilityTeamEmailKey)
 	s.checkRequiredConfig(appconfig.EASIHelpEmailKey)
+	s.checkRequiredConfig(appconfig.TRBEmailKey)
 	s.checkRequiredConfig(appconfig.ClientHostKey)
 	s.checkRequiredConfig(appconfig.ClientProtocolKey)
 	s.checkRequiredConfig(appconfig.EmailTemplateDirectoryKey)
+	s.checkRequiredConfig(appconfig.CEDAREmailAddress)
 
 	return email.Config{
 		GRTEmail:               models.NewEmailAddress(s.Config.GetString(appconfig.GRTEmailKey)),
 		ITInvestmentEmail:      models.NewEmailAddress(s.Config.GetString(appconfig.ITInvestmentEmailKey)),
 		AccessibilityTeamEmail: models.NewEmailAddress(s.Config.GetString(appconfig.AccessibilityTeamEmailKey)),
 		EASIHelpEmail:          models.NewEmailAddress(s.Config.GetString(appconfig.EASIHelpEmailKey)),
+		TRBEmail:               models.NewEmailAddress(s.Config.GetString(appconfig.TRBEmailKey)),
+		CEDARTeamEmail:         models.NewEmailAddress(s.Config.GetString(appconfig.CEDAREmailAddress)),
 		URLHost:                s.Config.GetString(appconfig.ClientHostKey),
 		URLScheme:              s.Config.GetString(appconfig.ClientProtocolKey),
 		TemplateDirectory:      s.Config.GetString(appconfig.EmailTemplateDirectoryKey),
@@ -86,9 +90,8 @@ func (s Server) NewS3Config() upload.Config {
 	s.checkRequiredConfig(appconfig.AWSRegion)
 
 	return upload.Config{
-		Bucket:  s.Config.GetString(appconfig.AWSS3FileUploadBucket),
-		Region:  s.Config.GetString(appconfig.AWSRegion),
-		IsLocal: false,
+		Bucket: s.Config.GetString(appconfig.AWSS3FileUploadBucket),
+		Region: s.Config.GetString(appconfig.AWSRegion),
 	}
 }
 
@@ -96,7 +99,14 @@ func (s Server) NewS3Config() upload.Config {
 func (s Server) NewCEDARClientCheck() {
 	s.checkRequiredConfig(appconfig.CEDARAPIURL)
 	s.checkRequiredConfig(appconfig.CEDARAPIKey)
+	s.checkRequiredConfig(appconfig.CEDARCoreAPIVersion)
 	s.checkRequiredConfig(appconfig.CEDARCacheIntervalKey)
+}
+
+// NewOktaAPIClientCheck checks if the Okta API client is configured
+func (s Server) NewOktaAPIClientCheck() {
+	s.checkRequiredConfig(appconfig.OKTAAPIURL)
+	s.checkRequiredConfig(appconfig.OKTAAPIToken)
 }
 
 // OktaClientConfig is the okta client configuration

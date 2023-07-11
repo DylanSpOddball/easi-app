@@ -14,6 +14,7 @@ import (
 	"github.com/cmsgov/easi-app/pkg/models"
 	"github.com/cmsgov/easi-app/pkg/storage"
 	"github.com/cmsgov/easi-app/pkg/testhelpers"
+	"github.com/cmsgov/easi-app/pkg/upload"
 
 	ld "gopkg.in/launchdarkly/go-server-sdk.v5"
 )
@@ -21,7 +22,8 @@ import (
 // ResolverSuite is the testify suite for the resolver package
 type ResolverSuite struct {
 	suite.Suite
-	testConfigs *TestConfigs
+	testConfigs       *TestConfigs
+	fetchUserInfoStub func(context.Context, string) (*models.UserInfo, error)
 }
 
 // SetupTest clears the database between each test
@@ -34,6 +36,13 @@ func (suite *ResolverSuite) SetupTest() {
 func TestResolverSuite(t *testing.T) {
 	rs := new(ResolverSuite)
 	rs.testConfigs = GetDefaultTestConfigs()
+	rs.fetchUserInfoStub = func(context.Context, string) (*models.UserInfo, error) {
+		return &models.UserInfo{
+			EuaUserID:  "ANON",
+			CommonName: "Anonymous",
+			Email:      models.NewEmailAddress("anon@local.fake"),
+		}, nil
+	}
 	suite.Run(t, rs)
 }
 
@@ -41,6 +50,7 @@ func TestResolverSuite(t *testing.T) {
 type TestConfigs struct {
 	DBConfig  storage.DBConfig
 	LDClient  *ld.LDClient
+	S3Client  *upload.S3Client
 	Logger    *zap.Logger
 	UserInfo  *models.UserInfo
 	Store     *storage.Store
@@ -57,16 +67,19 @@ func GetDefaultTestConfigs() *TestConfigs {
 
 // GetDefaults sets the dependencies for the TestConfigs struct
 func (tc *TestConfigs) GetDefaults() {
-
 	tc.DBConfig = NewDBConfig()
 	tc.LDClient, _ = ld.MakeCustomClient("fake", ld.Config{Offline: true}, 0)
+
+	s3Client := upload.NewS3Client(newS3Config())
+	tc.S3Client = &s3Client
+
 	tc.Logger = zap.NewNop()
 	tc.UserInfo = &models.UserInfo{
 		CommonName: "Test User",
 		Email:      "testuser@test.com",
 		EuaUserID:  "TEST",
 	}
-	tc.Store, _ = storage.NewStore(tc.Logger, tc.DBConfig, tc.LDClient)
+	tc.Store, _ = storage.NewStore(tc.DBConfig, tc.LDClient)
 
 	tc.Principal = &authentication.EUAPrincipal{
 		EUAID:            tc.UserInfo.EuaUserID,
@@ -93,5 +106,14 @@ func NewDBConfig() storage.DBConfig {
 		Password:       config.GetString(appconfig.DBPasswordConfigKey),
 		SSLMode:        config.GetString(appconfig.DBSSLModeConfigKey),
 		MaxConnections: config.GetInt(appconfig.DBMaxConnections),
+	}
+}
+
+func newS3Config() upload.Config {
+	config := testhelpers.NewConfig()
+	return upload.Config{
+		IsLocal: true,
+		Bucket:  config.GetString(appconfig.AWSS3FileUploadBucket),
+		Region:  config.GetString(appconfig.AWSRegion),
 	}
 }

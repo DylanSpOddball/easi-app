@@ -3,11 +3,13 @@ export type Flags = {
   downgradeGovTeam: boolean;
   downgrade508User: boolean;
   downgrade508Tester: boolean;
+  downgradeTrbAdmin: boolean;
+  itGovV2Enabled: boolean;
   systemProfile: boolean;
   systemProfileHiddenFields: boolean;
   cedar508Requests: boolean;
-  notifyMultipleRecipients: boolean;
   technicalAssistance: boolean;
+  hide508Workflow: boolean;
 };
 
 export type FlagsState = {

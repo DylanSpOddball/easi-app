@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -20,15 +21,19 @@ import (
 	_ "github.com/lib/pq" // pq is required to get the postgres driver into sqlx
 	"go.uber.org/zap"
 
+	"github.com/cmsgov/easi-app/pkg/alerts"
 	"github.com/cmsgov/easi-app/pkg/appconfig"
 	"github.com/cmsgov/easi-app/pkg/appcontext"
 	"github.com/cmsgov/easi-app/pkg/appses"
 	"github.com/cmsgov/easi-app/pkg/appvalidation"
 	"github.com/cmsgov/easi-app/pkg/authorization"
 	"github.com/cmsgov/easi-app/pkg/cedar/cedarldap"
+	"github.com/cmsgov/easi-app/pkg/oktaapi"
+	"github.com/cmsgov/easi-app/pkg/usersearch"
 
 	cedarcore "github.com/cmsgov/easi-app/pkg/cedar/core"
 	cedarintake "github.com/cmsgov/easi-app/pkg/cedar/intake"
+	"github.com/cmsgov/easi-app/pkg/dataloaders"
 	"github.com/cmsgov/easi-app/pkg/email"
 	"github.com/cmsgov/easi-app/pkg/flags"
 	"github.com/cmsgov/easi-app/pkg/graph"
@@ -52,7 +57,7 @@ func (s *Server) routes(
 	jwtVerifier := okta.NewJwtVerifier(oktaConfig.OktaClientID, oktaConfig.OktaIssuer)
 
 	oktaAuthenticationMiddleware := okta.NewOktaAuthenticationMiddleware(
-		handlers.NewHandlerBase(s.logger),
+		handlers.NewHandlerBase(),
 		jwtVerifier,
 		oktaConfig.AltJobCodes,
 	)
@@ -65,14 +70,14 @@ func (s *Server) routes(
 	)
 
 	if s.NewLocalAuthIsEnabled() {
-		localAuthenticationMiddleware := local.NewLocalAuthenticationMiddleware(s.logger)
+		localAuthenticationMiddleware := local.NewLocalAuthenticationMiddleware()
 		s.router.Use(localAuthenticationMiddleware)
 	}
 
-	requirePrincipalMiddleware := authorization.NewRequirePrincipalMiddleware(s.logger)
+	requirePrincipalMiddleware := authorization.NewRequirePrincipalMiddleware()
 
 	// set up handler base
-	base := handlers.NewHandlerBase(s.logger)
+	base := handlers.NewHandlerBase()
 
 	// endpoints that dont require authorization go directly on the main router
 	s.router.HandleFunc("/api/v1/healthcheck", handlers.NewHealthCheckHandler(base, s.Config).Handle())
@@ -97,13 +102,28 @@ func (s *Server) routes(
 		}
 	}
 
-	var cedarLDAPClient cedarldap.Client
-	cedarLDAPClient = cedarldap.NewTranslatedClient(
-		s.Config.GetString(appconfig.CEDARAPIURL),
-		s.Config.GetString(appconfig.CEDARAPIKey),
-	)
+	//TODO: update this to have OKTA API live in it's own package?
+	var userSearchClient usersearch.Client
 	if s.environment.Local() || s.environment.Test() {
-		cedarLDAPClient = local.NewCedarLdapClient(s.logger)
+		userSearchClient = local.NewCedarLdapClient(s.logger)
+	} else {
+		useOKTAAPI := s.Config.GetBool(appconfig.USEOKTAAPI)
+		if useOKTAAPI {
+			// Create Okta API Client
+			var oktaClientErr error
+			// Ensure Okta API Variables are set
+			s.NewOktaAPIClientCheck()
+			userSearchClient, oktaClientErr = oktaapi.NewClient(s.Config.GetString(appconfig.OKTAAPIURL), s.Config.GetString(appconfig.OKTAAPIToken))
+			if oktaClientErr != nil {
+				s.logger.Fatal("failed to create okta api client", zap.Error(oktaClientErr))
+			}
+		} else {
+			userSearchClient = cedarldap.NewTranslatedClient(
+				s.Config.GetString(appconfig.CEDARAPIURL),
+				s.Config.GetString(appconfig.CEDARAPIKey),
+			)
+		}
+
 	}
 
 	// set up CEDAR core API client
@@ -111,6 +131,7 @@ func (s *Server) routes(
 		appcontext.WithLogger(context.Background(), s.logger),
 		s.Config.GetString(appconfig.CEDARAPIURL),
 		s.Config.GetString(appconfig.CEDARAPIKey),
+		s.Config.GetString(appconfig.CEDARCoreAPIVersion),
 		s.Config.GetDuration(appconfig.CEDARCacheIntervalKey),
 		ldClient,
 	)
@@ -149,9 +170,7 @@ func (s *Server) routes(
 
 	// set up S3 client
 	s3Config := s.NewS3Config()
-	if s.environment.Local() || s.environment.Test() {
-		s3Config.IsLocal = true
-	}
+	s3Config.IsLocal = s.environment.Local() || s.environment.Test()
 
 	s3Client := upload.NewS3Client(s3Config)
 
@@ -170,7 +189,6 @@ func (s *Server) routes(
 	}
 
 	store, storeErr := storage.NewStore(
-		s.logger,
 		s.NewDBConfig(),
 		ldClient,
 	)
@@ -187,7 +205,7 @@ func (s *Server) routes(
 
 	saveAction := services.NewSaveAction(
 		store.CreateAction,
-		cedarLDAPClient.FetchUserInfo,
+		userSearchClient.FetchUserInfo,
 	)
 
 	resolver := graph.NewResolver(
@@ -204,21 +222,13 @@ func (s *Server) routes(
 				store.UpdateSystemIntake,
 				saveAction,
 				store.CreateGRTFeedback,
-				cedarLDAPClient.FetchUserInfo,
-				emailClient.SendSystemIntakeReviewEmail,
-				emailClient.SendSystemIntakeReviewEmailToMultipleRecipients,
-				emailClient.SendIntakeInvalidEUAIDEmail,
-				emailClient.SendIntakeNoEUAIDEmail,
+				emailClient.SendSystemIntakeReviewEmails,
 			),
 			CreateActionUpdateStatus: services.NewCreateActionUpdateStatus(
 				serviceConfig,
 				store.UpdateSystemIntakeStatus,
 				saveAction,
-				cedarLDAPClient.FetchUserInfo,
-				emailClient.SendSystemIntakeReviewEmail,
-				emailClient.SendSystemIntakeReviewEmailToMultipleRecipients,
-				emailClient.SendIntakeInvalidEUAIDEmail,
-				emailClient.SendIntakeNoEUAIDEmail,
+				emailClient.SendSystemIntakeReviewEmails,
 				services.NewCloseBusinessCase(
 					serviceConfig,
 					store.FetchBusinessCaseByID,
@@ -228,13 +238,9 @@ func (s *Server) routes(
 			CreateActionExtendLifecycleID: services.NewCreateActionExtendLifecycleID(
 				serviceConfig,
 				saveAction,
-				cedarLDAPClient.FetchUserInfo,
 				store.FetchSystemIntakeByID,
 				store.UpdateSystemIntake,
-				emailClient.SendExtendLCIDEmail,
-				emailClient.SendExtendLCIDEmailToMultipleRecipients,
-				emailClient.SendIntakeInvalidEUAIDEmail,
-				emailClient.SendIntakeNoEUAIDEmail,
+				emailClient.SendExtendLCIDEmails,
 			),
 			IssueLifecycleID: services.NewUpdateLifecycleFields(
 				serviceConfig,
@@ -242,11 +248,7 @@ func (s *Server) routes(
 				store.FetchSystemIntakeByID,
 				store.UpdateSystemIntake,
 				saveAction,
-				cedarLDAPClient.FetchUserInfo,
-				emailClient.SendIssueLCIDEmail,
-				emailClient.SendIssueLCIDEmailToMultipleRecipients,
-				emailClient.SendIntakeInvalidEUAIDEmail,
-				emailClient.SendIntakeNoEUAIDEmail,
+				emailClient.SendIssueLCIDEmails,
 				store.GenerateLifecycleID,
 			),
 			RejectIntake: services.NewUpdateRejectionFields(
@@ -255,11 +257,7 @@ func (s *Server) routes(
 				store.FetchSystemIntakeByID,
 				store.UpdateSystemIntake,
 				saveAction,
-				cedarLDAPClient.FetchUserInfo,
-				emailClient.SendRejectRequestEmail,
-				emailClient.SendRejectRequestEmailToMultipleRecipients,
-				emailClient.SendIntakeInvalidEUAIDEmail,
-				emailClient.SendIntakeNoEUAIDEmail,
+				emailClient.SendRejectRequestEmails,
 			),
 			SubmitIntake: services.NewSubmitSystemIntake(
 				serviceConfig,
@@ -274,9 +272,9 @@ func (s *Server) routes(
 				saveAction,
 				emailClient.SendSystemIntakeSubmissionEmail,
 			),
-			FetchUserInfo:            cedarLDAPClient.FetchUserInfo,
-			FetchUserInfos:           cedarLDAPClient.FetchUserInfos,
-			SearchCommonNameContains: cedarLDAPClient.SearchCommonNameContains,
+			FetchUserInfo:            userSearchClient.FetchUserInfo,
+			FetchUserInfos:           userSearchClient.FetchUserInfos,
+			SearchCommonNameContains: userSearchClient.SearchCommonNameContains,
 		},
 		&s3Client,
 		&emailClient,
@@ -297,6 +295,8 @@ func (s *Server) routes(
 	graphqlServer := handler.NewDefaultServer(generated.NewExecutableSchema(gqlConfig))
 	graphqlServer.Use(extension.FixedComplexityLimit(1000))
 	graphqlServer.AroundResponses(NewGQLResponseMiddleware())
+	loaderMiddleware := dataloaders.Middleware(userSearchClient.FetchUserInfos)
+	s.router.Use(loaderMiddleware)
 
 	gql.Handle("/query", graphqlServer)
 
@@ -357,7 +357,7 @@ func (s *Server) routes(
 			store.FetchSystemIntakeByID,
 			services.AuthorizeUserIsIntakeRequester,
 			store.CreateAction,
-			cedarLDAPClient.FetchUserInfo,
+			userSearchClient.FetchUserInfo,
 			store.CreateBusinessCase,
 			store.UpdateSystemIntake,
 		),
@@ -467,6 +467,18 @@ func (s *Server) routes(
 			return nil
 		})
 	}
+
+	// This is a temporary solution for EASI-2597 until a more robust event scheduling solution is implemented
+
+	// Check for upcoming LCID expirations every 24 hours
+	alerts.StartLcidExpirationCheck(
+		appcontext.WithLogger(context.Background(), s.logger),
+		userSearchClient.FetchUserInfo,
+		store.FetchSystemIntakes,
+		store.UpdateSystemIntake,
+		emailClient.SendLCIDExpirationAlertEmail,
+		time.Hour*24)
+
 	// endpoint for short-lived backfill process
 	// backfillHandler := handlers.NewBackfillHandler(
 	// 	base,

@@ -108,19 +108,12 @@ func (s *StoreTestSuite) TestUpdateSystemIntake() {
 			RequestType: models.SystemIntakeRequestTypeNEW,
 			Requester:   "Test requester",
 		}
-		_, err := s.store.CreateSystemIntake(ctx, &originalIntake)
+		createdIntake, err := s.store.CreateSystemIntake(ctx, &originalIntake)
 		s.NoError(err)
 		originalEUA := originalIntake.EUAUserID
-		partialIntake := models.SystemIntake{
-			ID:          originalIntake.ID,
-			EUAUserID:   testhelpers.RandomEUAIDNull(),
-			Status:      models.SystemIntakeStatusINTAKEDRAFT,
-			RequestType: models.SystemIntakeRequestTypeNEW,
-			Requester:   "Test requester",
-		}
-		partialIntake.EUAUserID = null.StringFrom("NEWS")
+		createdIntake.EUAUserID = null.StringFrom("NEWS")
 
-		_, err = s.store.UpdateSystemIntake(ctx, &partialIntake)
+		_, err = s.store.UpdateSystemIntake(ctx, createdIntake)
 		s.NoError(err, "failed to update system intake")
 
 		updated, err := s.store.FetchSystemIntakeByID(ctx, originalIntake.ID)
@@ -654,7 +647,7 @@ func (s *StoreTestSuite) TestFetchSystemIntakesByFilter() {
 		intakeWithOneCommentID := intakeIDs[1]
 		intakeWithManyCommentsID := intakeIDs[2]
 
-		_, err := s.store.CreateNote(ctx, &models.Note{
+		_, err := s.store.CreateSystemIntakeNote(ctx, &models.SystemIntakeNote{
 			SystemIntakeID: intakeWithOneCommentID,
 			Content:        null.StringFrom("the only comment"),
 			CreatedAt:      mustParseTime("2021-01-01"),
@@ -662,21 +655,21 @@ func (s *StoreTestSuite) TestFetchSystemIntakesByFilter() {
 		})
 		s.NoError(err)
 
-		_, err = s.store.CreateNote(ctx, &models.Note{
+		_, err = s.store.CreateSystemIntakeNote(ctx, &models.SystemIntakeNote{
 			SystemIntakeID: intakeWithManyCommentsID,
 			Content:        null.StringFrom("the first comment"),
 			CreatedAt:      mustParseTime("2021-01-01"),
 			AuthorEUAID:    "ABCD",
 		})
 		s.NoError(err)
-		_, err = s.store.CreateNote(ctx, &models.Note{
+		_, err = s.store.CreateSystemIntakeNote(ctx, &models.SystemIntakeNote{
 			SystemIntakeID: intakeWithManyCommentsID,
 			Content:        null.StringFrom("the third comment"),
 			CreatedAt:      mustParseTime("2021-01-03"),
 			AuthorEUAID:    "ABCD",
 		})
 		s.NoError(err)
-		_, err = s.store.CreateNote(ctx, &models.Note{
+		_, err = s.store.CreateSystemIntakeNote(ctx, &models.SystemIntakeNote{
 			SystemIntakeID: intakeWithManyCommentsID,
 			Content:        null.StringFrom("the second comment"),
 			CreatedAt:      mustParseTime("2021-01-02"),
@@ -721,6 +714,7 @@ func (s *StoreTestSuite) TestFetchSystemIntakeMetrics() {
 
 	// create a random year to avoid test collisions
 	// uses postgres max year minus 1000000
+	//nolint
 	rand.Seed(time.Now().UnixNano())
 	// #nosec G404
 	endYear := rand.Intn(294276)

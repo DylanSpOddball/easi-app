@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useHistory, useParams } from 'react-router-dom';
-import { DocumentNode, useMutation } from '@apollo/client';
+import { ApolloError, DocumentNode, useMutation } from '@apollo/client';
 import { Button } from '@trussworks/react-uswds';
-import { Field, Form, Formik, FormikProps } from 'formik';
+import { Field, Form, Formik, FormikHelpers, FormikProps } from 'formik';
 
 import PageHeading from 'components/PageHeading';
 import { ErrorAlert, ErrorAlertMessage } from 'components/shared/ErrorAlert';
@@ -12,7 +12,7 @@ import FieldGroup from 'components/shared/FieldGroup';
 import HelpText from 'components/shared/HelpText';
 import Label from 'components/shared/Label';
 import TextAreaField from 'components/shared/TextAreaField';
-import useSystemIntake from 'hooks/useSystemIntake';
+import useSystemIntakeContacts from 'hooks/useSystemIntakeContacts';
 import {
   AddGRTFeedback,
   AddGRTFeedbackVariables
@@ -35,11 +35,18 @@ const ProvideGRTFeedbackToBusinessOwner = ({
   query
 }: ProvideGRTFeedbackProps) => {
   const { systemId } = useParams<{ systemId: string }>();
-  const { systemIntake } = useSystemIntake(systemId);
   const history = useHistory();
   const { t } = useTranslation('action');
   const [mutate] = useMutation<AddGRTFeedback, AddGRTFeedbackVariables>(query);
-  const [shouldSendEmail, setShouldSendEmail] = useState<boolean>(true);
+
+  // System intake contacts
+  const { contacts } = useSystemIntakeContacts(systemId);
+  const { requester } = contacts.data;
+
+  /** Whether contacts have loaded for the first time */
+  const [contactsLoaded, setContactsLoaded] = useState(false);
+
+  // Active contact for adding/verifying recipients
   const [
     activeContact,
     setActiveContact
@@ -51,28 +58,60 @@ const ProvideGRTFeedbackToBusinessOwner = ({
     grtFeedback: '',
     emailBody: '',
     notificationRecipients: {
-      regularRecipientEmails: [systemIntake?.requester?.email!].filter(e => e),
+      regularRecipientEmails: [requester.email].filter(e => e), // Filter out null emails
       shouldNotifyITGovernance: true,
       shouldNotifyITInvestment: false
-    }
+    },
+    shouldSendEmail: true
   };
 
-  const onSubmit = (values: ProvideGRTFeedbackForm) => {
-    const { grtFeedback, emailBody, notificationRecipients } = values;
-    mutate({
-      variables: {
-        input: {
-          emailBody,
-          feedback: grtFeedback,
-          intakeID: systemId,
-          shouldSendEmail,
-          notificationRecipients
-        }
+  const onSubmit = (
+    values: ProvideGRTFeedbackForm,
+    { setFieldError }: FormikHelpers<ProvideGRTFeedbackForm>
+  ) => {
+    const {
+      grtFeedback,
+      emailBody,
+      notificationRecipients,
+      shouldSendEmail
+    } = values;
+
+    const variables: AddGRTFeedbackVariables = {
+      input: {
+        emailBody,
+        feedback: grtFeedback,
+        intakeID: systemId
       }
-    }).then(() => {
-      history.push(`/governance-review-team/${systemId}/notes`);
-    });
+    };
+
+    if (shouldSendEmail) {
+      variables.input.notificationRecipients = notificationRecipients;
+    }
+
+    // GQL mutation to submit action
+    mutate({
+      variables
+    })
+      .then(({ errors }) => {
+        if (!errors) {
+          // If no errors, view intake action notes
+          history.push(`/governance-review-team/${systemId}/notes`);
+        }
+      })
+      // Set Formik error to display alert
+      .catch((e: ApolloError) => setFieldError('systemIntake', e.message));
   };
+
+  // Sets contactsLoaded to true when GetSystemIntakeContactsQuery loading state changes
+  useEffect(() => {
+    if (!contacts.loading) {
+      setContactsLoaded(true);
+    }
+  }, [contacts.loading]);
+
+  // Returns null until GetSystemIntakeContactsQuery has completed
+  // Allows initial values to fully load before initializing form
+  if (!contactsLoaded) return null;
 
   return (
     <Formik
@@ -82,6 +121,7 @@ const ProvideGRTFeedbackToBusinessOwner = ({
       validateOnBlur={false}
       validateOnChange={false}
       validateOnMount={false}
+      enableReinitialize
     >
       {(formikProps: FormikProps<ProvideGRTFeedbackForm>) => {
         const {
@@ -121,7 +161,7 @@ const ProvideGRTFeedbackToBusinessOwner = ({
             <h3 className="margin-top-3 margin-bottom-2">
               {t('submitAction.subheading')}
             </h3>
-            <p>
+            <p data-testid="grtSelectedAction">
               {actionName} &nbsp;
               <Link to={backLink}>{t('submitAction.backLink')}</Link>
             </p>
@@ -163,6 +203,7 @@ const ProvideGRTFeedbackToBusinessOwner = ({
                     systemIntakeId={systemId}
                     activeContact={activeContact}
                     setActiveContact={setActiveContact}
+                    contacts={contacts.data}
                     recipients={values.notificationRecipients}
                     setRecipients={recipients =>
                       setFieldValue('notificationRecipients', recipients)
@@ -194,8 +235,7 @@ const ProvideGRTFeedbackToBusinessOwner = ({
                     type="submit"
                     onClick={() => {
                       setErrors({});
-                      setShouldSendEmail(true);
-                      setFieldValue('skipEmail', false);
+                      setFieldValue('shouldSendEmail', true);
                     }}
                     disabled={!!activeContact}
                   >
@@ -204,12 +244,9 @@ const ProvideGRTFeedbackToBusinessOwner = ({
                 </div>
                 <div>
                   <CompleteWithoutEmailButton
-                    onClick={() => {
-                      setErrors({});
-                      setShouldSendEmail(false);
-                      setFieldValue('skipEmail', true);
-                      setTimeout(submitForm);
-                    }}
+                    setErrors={setErrors}
+                    setFieldValue={setFieldValue}
+                    submitForm={submitForm}
                     disabled={!!activeContact}
                   />
                 </div>

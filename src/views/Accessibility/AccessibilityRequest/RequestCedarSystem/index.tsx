@@ -7,18 +7,12 @@ import {
   useMutation,
   useQuery
 } from '@apollo/client';
-import {
-  Alert,
-  Button,
-  ComboBox,
-  IconArrowBack,
-  Link
-} from '@trussworks/react-uswds';
+import { Button, ComboBox, IconArrowBack, Link } from '@trussworks/react-uswds';
 import classNames from 'classnames';
 import { Form as FormikForm, Formik, FormikProps } from 'formik';
 
 import PageHeading from 'components/PageHeading';
-import { AlertText } from 'components/shared/Alert';
+import Alert from 'components/shared/Alert';
 import CollapsibleLink from 'components/shared/CollapsableLink';
 import { ErrorAlert, ErrorAlertMessage } from 'components/shared/ErrorAlert';
 import FieldGroup from 'components/shared/FieldGroup';
@@ -79,9 +73,9 @@ const CreateRequestWrapper = (props: RequestWrapperProps) => {
         const uuid =
           response.data.createAccessibilityRequest.accessibilityRequest.id;
         showMessageOnNextPage(
-          <AlertText className="margin-bottom-2">
+          <span className="margin-bottom-2">
             {t('newRequestForm.confirmation')}
-          </AlertText>
+          </span>
         );
         history.push(`/508/requests/${uuid}/documents`);
       }
@@ -106,6 +100,7 @@ type UpdateRequestWrapperProps = {
 const UpdateRequestWrapper = (
   props: RequestWrapperProps & UpdateRequestWrapperProps
 ) => {
+  const { accessibilityRequestId } = props;
   const [updateRequest, updateRequestResult] = useMutation(
     UpdateAccessibilityRequestQuery
   );
@@ -116,7 +111,7 @@ const UpdateRequestWrapper = (
     updateRequest({
       variables: {
         input: {
-          id: props.accessibilityRequestId,
+          id: accessibilityRequestId,
           cedarSystemId: values.cedarId
         }
       }
@@ -129,9 +124,9 @@ const UpdateRequestWrapper = (
 
       showMessageOnNextPage(
         <>
-          <AlertText className="margin-bottom-2">
+          <span className="margin-bottom-2">
             {`${values.cedarId} has been tied to ${name}.`}
-          </AlertText>
+          </span>
         </>
       );
       history.push(`/508/requests/${uuid}/documents`);

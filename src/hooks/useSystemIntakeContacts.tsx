@@ -1,166 +1,271 @@
 import { useMemo } from 'react';
-import { ApolloQueryResult, useMutation, useQuery } from '@apollo/client';
+import { FetchResult, useMutation, useQuery } from '@apollo/client';
 
 import { initialContactsObject } from 'constants/systemIntake';
+import GetSystemIntakeQuery from 'queries/GetSystemIntakeQuery';
 import {
   CreateSystemIntakeContact,
   DeleteSystemIntakeContact,
   GetSystemIntakeContactsQuery,
   UpdateSystemIntakeContact
 } from 'queries/SystemIntakeContactsQueries';
-import { GetSystemIntakeContacts } from 'queries/types/GetSystemIntakeContacts';
+import { CreateSystemIntakeContact as CreateSystemIntakeContactPayload } from 'queries/types/CreateSystemIntakeContact';
+import { DeleteSystemIntakeContact as DeleteSystemIntakeContactPayload } from 'queries/types/DeleteSystemIntakeContact';
 import {
-  CreateSystemIntakeContactInput,
-  DeleteSystemIntakeContactInput,
-  UpdateSystemIntakeContactInput
-} from 'types/graphql-global-types';
+  GetSystemIntake,
+  GetSystemIntakeVariables
+} from 'queries/types/GetSystemIntake';
+import {
+  GetSystemIntakeContacts,
+  GetSystemIntakeContacts_systemIntakeContacts_systemIntakeContacts as AugmentedSystemIntakeContact
+} from 'queries/types/GetSystemIntakeContacts';
+import { UpdateSystemIntakeContact as UpdateSystemIntakeContactPayload } from 'queries/types/UpdateSystemIntakeContact';
 import {
   FormattedContacts,
   SystemIntakeContactProps,
   UseSystemIntakeContactsType
 } from 'types/systemIntake';
 
-import useSystemIntake from './useSystemIntake';
-
 const rolesMap = {
+  Requester: 'requester',
   'Business Owner': 'businessOwner',
   'Product Manager': 'productManager',
   ISSO: 'isso'
 } as const;
 type Role = keyof typeof rolesMap;
 
-/** Custom hook for creating, updating, and deleting system intake contacts */
+/**
+ * Custom hook for creating, updating, and deleting system intake contacts
+ * */
 function useSystemIntakeContacts(
   systemIntakeId: string
 ): UseSystemIntakeContactsType {
   // GQL query to get intake contacts
-  const { data, refetch } = useQuery<GetSystemIntakeContacts>(
+  const { data, loading } = useQuery<GetSystemIntakeContacts>(
     GetSystemIntakeContactsQuery,
     {
-      fetchPolicy: 'cache-first',
       variables: { id: systemIntakeId }
     }
   );
 
-  // Get system intake from Apollo cache
-  const { systemIntake } = useSystemIntake(systemIntakeId);
+  /** Array of system intake contacts */
+  const systemIntakeContacts: AugmentedSystemIntakeContact[] | undefined =
+    data?.systemIntakeContacts?.systemIntakeContacts;
 
-  /** Formatted system intake contacts object */
-  const contacts = useMemo<FormattedContacts | null>(() => {
-    // Get systemIntakeContacts
-    const systemIntakeContacts = data?.systemIntakeContacts
-      ?.systemIntakeContacts as SystemIntakeContactProps[];
+  /** System intake query results */
+  const intakeQuery = useQuery<GetSystemIntake, GetSystemIntakeVariables>(
+    GetSystemIntakeQuery,
+    {
+      variables: {
+        id: systemIntakeId
+      }
+    }
+  );
+  const { systemIntake } = intakeQuery?.data || {};
 
-    // Return null if no systemIntakeContacts
-    if (!systemIntakeContacts || !systemIntake) return null;
+  /**
+   * Formatted system intake contacts object
+   * */
+  const contacts = useMemo<FormattedContacts>(() => {
+    // Return empty values if no systemIntakeContacts
+    if (!systemIntakeContacts || !systemIntake) return initialContactsObject;
 
-    // Merge initial contacts object with possible legacy data from system intake
-    const mergedContactsObject = {
+    const {
+      requester,
+      euaUserId,
+      businessOwner,
+      productManager,
+      isso
+    } = systemIntake;
+
+    /**
+     * Merge initial contacts object with possible legacy data from system intake
+     */
+    const mergedContactsObject: FormattedContacts = {
       ...initialContactsObject,
+      requester: {
+        ...initialContactsObject.requester,
+        euaUserId,
+        commonName: requester.name,
+        component: requester?.component || '',
+        email: requester?.email || '',
+        systemIntakeId
+      },
       businessOwner: {
         ...initialContactsObject.businessOwner,
-        commonName: systemIntake.businessOwner.name || '',
-        component: systemIntake.businessOwner.component || ''
+        commonName: businessOwner?.name || '',
+        component: businessOwner?.component || '',
+        systemIntakeId
       },
       productManager: {
         ...initialContactsObject.productManager,
-        commonName: systemIntake.productManager.name || '',
-        component: systemIntake.productManager.component || ''
+        commonName: productManager?.name || '',
+        component: productManager?.component || '',
+        systemIntakeId
       },
       isso: {
         ...initialContactsObject.isso,
-        commonName: systemIntake.isso.name || ''
+        commonName: isso?.name || '',
+        systemIntakeId
       }
     };
 
     // Return formatted contacts
     return systemIntakeContacts.reduce<FormattedContacts>(
       (contactsObject, contact) => {
+        // If contact is primary role, add to object
         if (rolesMap[contact.role as Role]) {
           return {
             ...contactsObject,
             [rolesMap[contact.role as Role]]: contact
           };
         }
+        // If contact is additional contacts, add to additional contacts array
         return {
           ...contactsObject,
-          additionalContacts: [...contactsObject.additionalContacts, contact]
+          additionalContacts: [
+            ...contactsObject.additionalContacts,
+            {
+              ...contact,
+              commonName: contact.commonName || '',
+              email: contact.email || '',
+              systemIntakeId
+            }
+          ]
         };
       },
       mergedContactsObject
     );
-  }, [data?.systemIntakeContacts?.systemIntakeContacts, systemIntake]);
+  }, [systemIntakeContacts, systemIntake, systemIntakeId]);
 
   const [
     createSystemIntakeContact
-  ] = useMutation<CreateSystemIntakeContactInput>(CreateSystemIntakeContact);
+  ] = useMutation<CreateSystemIntakeContactPayload>(CreateSystemIntakeContact, {
+    refetchQueries: ['GetSystemIntakeContactsQuery'],
+    awaitRefetchQueries: true
+  });
   const [
     updateSystemIntakeContact
-  ] = useMutation<UpdateSystemIntakeContactInput>(UpdateSystemIntakeContact);
+  ] = useMutation<UpdateSystemIntakeContactPayload>(UpdateSystemIntakeContact, {
+    refetchQueries: ['GetSystemIntakeContactsQuery'],
+    awaitRefetchQueries: true
+  });
   const [
     deleteSystemIntakeContact
-  ] = useMutation<DeleteSystemIntakeContactInput>(DeleteSystemIntakeContact);
+  ] = useMutation<DeleteSystemIntakeContactPayload>(DeleteSystemIntakeContact, {
+    refetchQueries: ['GetSystemIntakeContactsQuery'],
+    awaitRefetchQueries: true
+  });
 
-  /** Create system intake contact in database */
-  const createContact = async (contact: SystemIntakeContactProps) => {
+  /**
+   * Create system intake contact in database
+   * */
+  const createContact = async (
+    /** Contact field values submitted from form */
+    contact: SystemIntakeContactProps
+  ): Promise<AugmentedSystemIntakeContact> => {
     const { euaUserId, component, role } = contact;
-    return createSystemIntakeContact({
-      variables: {
-        input: {
-          euaUserId: euaUserId.toUpperCase(),
-          component,
-          role,
-          systemIntakeId
+    return (
+      // Create system intake contact
+      createSystemIntakeContact({
+        variables: {
+          input: {
+            euaUserId: euaUserId.toUpperCase(),
+            component,
+            role,
+            systemIntakeId
+          }
         }
-      }
-    })
-      .then(refetch)
-      .then((response: ApolloQueryResult<GetSystemIntakeContacts>) =>
-        response?.data?.systemIntakeContacts?.systemIntakeContacts.find(
-          obj => obj.role === role
-        )
-      );
+      })
+        .then((response: FetchResult<CreateSystemIntakeContactPayload>) => {
+          const {
+            /** Contact data returned from mutation */
+            systemIntakeContact
+          } = response.data?.createSystemIntakeContact || {};
+
+          /** Merged contact data with mutation response */
+          const mergedContact: AugmentedSystemIntakeContact = {
+            ...contact,
+            ...systemIntakeContact,
+            id: systemIntakeContact?.id || '',
+            __typename: 'AugmentedSystemIntakeContact'
+          };
+
+          // Return merged contact data
+          return mergedContact;
+        })
+        // If error, return submitted data
+        .catch(() => contact as AugmentedSystemIntakeContact)
+    );
   };
 
-  /** Update system intake contact in database */
-  const updateContact = async (contact: SystemIntakeContactProps) => {
-    const { id, euaUserId, component, role } = contact;
-    return updateSystemIntakeContact({
-      variables: {
-        input: {
-          id,
-          euaUserId: euaUserId.toUpperCase(),
-          component,
-          role,
-          systemIntakeId
+  /**
+   * Update system intake contact in database
+   * */
+  const updateContact = async (
+    /** Contact field values submitted from form */
+    contact: SystemIntakeContactProps
+  ): Promise<AugmentedSystemIntakeContact> => {
+    const { id, component, euaUserId, role } = contact;
+
+    /** Updated contact response from mutation */
+    return (
+      updateSystemIntakeContact({
+        variables: {
+          input: {
+            id,
+            euaUserId: euaUserId.toUpperCase(),
+            component,
+            role,
+            systemIntakeId
+          }
         }
-      }
-    })
-      .then(refetch)
-      .then(
-        (response: ApolloQueryResult<GetSystemIntakeContacts>) =>
-          response?.data?.systemIntakeContacts?.systemIntakeContacts
-      );
+      })
+        .then((response: FetchResult<UpdateSystemIntakeContactPayload>) => {
+          const {
+            /** Contact data returned from mutation */
+            systemIntakeContact
+          } = response.data?.updateSystemIntakeContact || {};
+
+          /** Merged contact data with mutation response */
+          const mergedContact: AugmentedSystemIntakeContact = {
+            ...contact,
+            ...systemIntakeContact,
+            id: contact?.id || '',
+            __typename: 'AugmentedSystemIntakeContact'
+          };
+
+          // Return merged contact data
+          return mergedContact;
+        })
+        // If error, return submitted data
+        .catch(() => contact as AugmentedSystemIntakeContact)
+    );
   };
 
-  /** Delete system intake contact from database */
-  const deleteContact = async (id: string) => {
-    return deleteSystemIntakeContact({
-      variables: {
-        input: {
-          id
+  /**
+   * Delete system intake contact from database
+   * */
+  const deleteContact = async (
+    /** ID of contact to delete */
+    id: string
+  ): Promise<FormattedContacts> => {
+    return (
+      // Delete contact
+      deleteSystemIntakeContact({
+        variables: {
+          input: {
+            id
+          }
         }
-      }
-    })
-      .then(refetch)
-      .then(
-        (response: ApolloQueryResult<GetSystemIntakeContacts>) =>
-          response?.data?.systemIntakeContacts?.systemIntakeContacts
-      );
+      })
+        .then(() => contacts)
+        .catch(() => contacts)
+    );
   };
 
   return {
-    contacts,
+    contacts: { data: contacts, loading },
     createContact,
     updateContact,
     deleteContact

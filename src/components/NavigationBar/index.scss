@@ -1,3 +1,7 @@
+@use 'uswds-core' as *;
+@use 'colors' as *;
+@use 'viewports' as *;
+
 .usa-nav {
     margin-left: -1em
 }
@@ -38,14 +42,11 @@
 
         .usa-current {
             color: $easi-blue;
+
             .usa-logo__text {
                 color: $easi-blue;
             }
         }
 
     }
-}
-
-.border-top-light {
-    border-top: 1px solid color('base-lighter');
 }

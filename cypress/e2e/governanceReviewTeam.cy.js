@@ -1,4 +1,11 @@
+import { DateTime } from 'luxon';
+
+import governaceReviewTeam from '../../src/i18n/en-US/articles/governanceReviewTeam';
+
 describe('Governance Review Team', () => {
+  const futureDatetime = DateTime.local().plus({ year: 1 });
+  const futureDateYear = futureDatetime.year;
+
   beforeEach(() => {
     cy.intercept('GET', '/api/v1/system_intakes?status=open').as(
       'getOpenIntakes'
@@ -7,6 +14,9 @@ describe('Governance Review Team', () => {
     cy.intercept('POST', '/api/graph/query', req => {
       if (req.body.operationName === 'GetSystemIntake') {
         req.alias = 'getSystemIntake';
+      }
+      if (req.body.operationName === 'GetSystemIntakeContactsQuery') {
+        req.alias = 'getSystemIntakeContacts';
       }
     });
 
@@ -20,11 +30,13 @@ describe('Governance Review Team', () => {
     );
     cy.get('[data-testid="admin-lead"]').contains('Not Assigned');
     cy.contains('button', 'Change').click();
-    cy.get('input[value="Ann Rudolph"]').check({ force: true });
+
+    const firstGovTeamMember = governaceReviewTeam.adminLeads.members[0];
+    cy.get(`input[value='${firstGovTeamMember}']`).check({ force: true });
 
     cy.get('[data-testid="button"]').contains('Save').click();
     cy.wait('@getSystemIntake').its('response.statusCode').should('eq', 200);
-    cy.get('span[data-testid="admin-lead"]').contains('Ann Rudolph');
+    cy.get('span[data-testid="admin-lead"]').contains(firstGovTeamMember);
   });
 
   it('can add GRT/GRB dates', () => {
@@ -83,11 +95,11 @@ describe('Governance Review Team', () => {
 
     cy.get('[data-testid="af7a3924-3ff7-48ec-8a54-b8b4bc95610b-row"]').contains(
       'td',
-      'November 24 2020'
+      '11/24/2020'
     );
     cy.get('[data-testid="af7a3924-3ff7-48ec-8a54-b8b4bc95610b-row"]').contains(
       'td',
-      'December 25 2020'
+      '12/25/2020'
     );
   });
 
@@ -118,19 +130,62 @@ describe('Governance Review Team', () => {
     });
   });
 
-  it('can issue a Lifecycle ID', () => {
+  it('can edit a note', () => {
     // Selecting name based on pre-seeded data
     // A Completed Intake Form - af7a3924-3ff7-48ec-8a54-b8b4bc95610b
     cy.contains('a', 'A Completed Intake Form').should('be.visible').click();
-    cy.get('[data-testid="grt-nav-actions-link"]').click();
+    cy.get(
+      'a[href="/governance-review-team/af7a3924-3ff7-48ec-8a54-b8b4bc95610b/notes"]'
+    ).click();
 
-    cy.get('button[data-testid="collapsable-link"]').click();
-    cy.get('#issue-lcid').check({ force: true }).should('be.checked');
-    cy.get('button[type="submit"]').click();
+    cy.get('[data-testid="user-note"]').then(() => {
+      cy.get('#GovernanceReviewTeam-EditNoteButton').click();
 
-    cy.get('#IssueLifecycleIdForm-NewLifecycleIdYes')
-      .check({ force: true })
-      .should('be.checked');
+      const noteFixture = 'Test note';
+      cy.get('#GovernanceReviewTeam-EditNote').contains(noteFixture);
+
+      cy.get('#GovernanceReviewTeam-EditNote')
+        .type(' edited', { force: true })
+        .should('have.value', 'Test note edited');
+
+      cy.get('#GovernanceReviewTeam-SaveEditsButton').click({ force: true });
+
+      cy.get('[data-testid="user-note"]').first().contains('Test note edited');
+    });
+  });
+
+  it('can remove/archive a note', () => {
+    // Selecting name based on pre-seeded data
+    // A Completed Intake Form - af7a3924-3ff7-48ec-8a54-b8b4bc95610b
+    cy.contains('a', 'A Completed Intake Form').should('be.visible').click();
+    cy.get(
+      'a[href="/governance-review-team/af7a3924-3ff7-48ec-8a54-b8b4bc95610b/notes"]'
+    ).click();
+
+    cy.get('[data-testid="user-note"]').then(notes => {
+      const numOfNotes = notes.length;
+
+      cy.get('#GovernanceReviewTeam-RemoveNoteButton').click();
+
+      cy.get('#GovernanceReviewTeam-SaveArchiveButton').click({ force: true });
+
+      cy.get('[data-testid="user-note"]').should('have.length', numOfNotes - 1);
+    });
+  });
+
+  it('can issue a Lifecycle ID', () => {
+    // Selecting name based on pre-seeded data
+    // A Completed Intake Form - af7a3924-3ff7-48ec-8a54-b8b4bc95610b
+    cy.governanceReviewTeam.grtActions.selectAction({
+      intakeName: 'A Completed Intake Form',
+      actionId: 'issue-lcid'
+    });
+
+    cy.get('#grtActionEmailRecipientFields').should('be.visible');
+
+    cy.get('#IssueLifecycleIdForm-NewLifecycleIdYes').check({ force: true });
+    cy.get('#IssueLifecycleIdForm-NewLifecycleIdYes').should('be.checked');
+
     cy.get('#IssueLifecycleIdForm-ExpirationDateMonth')
       .clear()
       .type('12')
@@ -142,8 +197,8 @@ describe('Governance Review Team', () => {
 
     cy.get('#IssueLifecycleIdForm-ExpirationDateYear')
       .clear()
-      .type(new Date().getFullYear())
-      .should('have.value', new Date().getFullYear());
+      .type(futureDateYear)
+      .should('have.value', futureDateYear);
     cy.get('#IssueLifecycleIdForm-Scope')
       .type('Scope')
       .should('have.value', 'Scope');
@@ -176,7 +231,7 @@ describe('Governance Review Team', () => {
     ).click();
     cy.contains('dt', 'Lifecycle ID Expiration')
       .siblings('dd')
-      .contains(`December 25 ${new Date().getFullYear()}`);
+      .contains(`December 25, ${futureDateYear}`);
     cy.contains('dt', 'Lifecycle ID Scope').siblings('dd').contains('Scope');
     cy.contains('dt', 'Next Steps').siblings('dd').contains('Next steps');
   });
@@ -184,13 +239,10 @@ describe('Governance Review Team', () => {
   it('can close a request', () => {
     // Selecting name based on pre-seeded data
     // Closable Request - 20cbcfbf-6459-4c96-943b-e76b83122dbf
-    cy.contains('a', 'Closable Request').should('be.visible').click();
-    cy.get('[data-testid="grt-nav-actions-link"]').click();
-
-    cy.get('button[data-testid="collapsable-link"]').click();
-    cy.get('#no-governance').check({ force: true }).should('be.checked');
-
-    cy.get('button[type="submit"]').click();
+    cy.governanceReviewTeam.grtActions.selectAction({
+      intakeName: 'Closable Request',
+      actionId: 'no-governance'
+    });
 
     cy.get('#SubmitActionForm-Feedback')
       .type('Feedback')
@@ -210,9 +262,7 @@ describe('Governance Review Team', () => {
     );
   });
 
-  // depends on the "notifyMultipleRecipients" feature flag being set;
-  // we currently can't guarantee this when running tests in CI
-  it.skip('can select action email recipients', () => {
+  it('can add additional contact as email recipient', () => {
     cy.contains('a', 'Ready for business case').should('be.visible').click();
     cy.get('[data-testid="grt-nav-actions-link"]').click();
 
@@ -225,11 +275,11 @@ describe('Governance Review Team', () => {
     cy.contains('button', 'Add another recipient').click();
 
     // Add additional contact
-    cy.get('#IntakeForm-ContactCommonName input')
-      .type('Jerry')
+    cy.get('#react-select-IntakeForm-ContactCommonName-input')
+      .type('Aaron A')
       .wait(1000)
       .type('{downArrow}{enter}')
-      .should('have.value', 'Jerry Seinfeld, SF13');
+      .should('have.value', 'Aaron Adams, ADMN');
 
     cy.get('#IntakeForm-ContactComponent')
       .select('Center for Medicare')
@@ -241,10 +291,8 @@ describe('Governance Review Team', () => {
 
     cy.contains('button', 'Add recipient').click();
 
-    // Select contact
-    cy.get('input[value="SF13@local.fake"]')
-      .check({ force: true })
-      .should('be.checked');
+    // Check that contact is automatically selected
+    cy.get('input[value="aaron.adams@local.fake"]').should('be.checked');
   });
 
   it('can extend a Lifecycle ID', () => {
@@ -258,15 +306,15 @@ describe('Governance Review Team', () => {
       }
     });
 
-    cy.get('button').contains('Closed Requests').click();
+    cy.get('button').contains('Closed requests').click();
 
     cy.wait('@getClosedRequests').its('response.statusCode').should('eq', 200);
-    cy.contains('a', 'With LCID Issued').should('be.visible').click();
 
-    cy.contains('a', 'Actions').should('be.visible').click();
-
-    cy.get('#extend-lcid').check({ force: true }).should('be.checked');
-    cy.get('button[type="submit"]').click();
+    // Navigate to intake and select action
+    cy.governanceReviewTeam.grtActions.selectAction({
+      intakeName: 'With LCID Issued',
+      actionId: 'extend-lcid'
+    });
 
     cy.get('#ExtendLifecycleId-expirationDateMonth')
       .type('08')
@@ -275,8 +323,8 @@ describe('Governance Review Team', () => {
       .type('31')
       .should('have.value', '31');
     cy.get('#ExtendLifecycleId-expirationDateYear')
-      .type('2028')
-      .should('have.value', '2028');
+      .type(futureDateYear)
+      .should('have.value', futureDateYear);
 
     cy.get('#ExtendLifecycleIdForm-Scope')
       .type('Scope')
@@ -307,15 +355,15 @@ describe('Governance Review Team', () => {
       }
     });
 
-    cy.get('button').contains('Closed Requests').click();
+    cy.get('button').contains('Closed requests').click();
 
     cy.wait('@getClosedRequests').its('response.statusCode').should('eq', 200);
-    cy.contains('a', 'With LCID Issued').should('be.visible').click();
 
-    cy.contains('a', 'Actions').should('be.visible').click();
-
-    cy.get('#extend-lcid').check({ force: true }).should('be.checked');
-    cy.get('button[type="submit"]').click();
+    // Navigate to intake and select action
+    cy.governanceReviewTeam.grtActions.selectAction({
+      intakeName: 'With LCID Issued',
+      actionId: 'extend-lcid'
+    });
 
     cy.get('#ExtendLifecycleId-expirationDateMonth')
       .type('08')
@@ -324,8 +372,8 @@ describe('Governance Review Team', () => {
       .type('31')
       .should('have.value', '31');
     cy.get('#ExtendLifecycleId-expirationDateYear')
-      .type('2029')
-      .should('have.value', '2029');
+      .type(futureDateYear)
+      .should('have.value', futureDateYear);
 
     cy.get('#ExtendLifecycleIdForm-Scope')
       .type('Scope')

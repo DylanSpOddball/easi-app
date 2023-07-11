@@ -28,7 +28,10 @@ export const UpdateSystemIntakeContractDetails = gql`
         }
         costs {
           expectedIncreaseAmount
-          isExpectingIncrease
+        }
+        annualSpending {
+          currentAnnualSpending
+          plannedYearOneSpending
         }
         contract {
           contractor
@@ -60,6 +63,7 @@ export const UpdateSystemIntakeRequestDetails = gql`
         businessNeed
         businessSolution
         needsEaSupport
+        hasUiChanges
       }
     }
   }

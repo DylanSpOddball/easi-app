@@ -1,119 +1,120 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
-import {
-  Link,
-  Redirect,
-  Route,
-  RouteChildrenProps,
-  Switch,
-  useLocation,
-  useRouteMatch
-} from 'react-router-dom';
-import {
-  Breadcrumb,
-  BreadcrumbBar,
-  BreadcrumbLink
-} from '@trussworks/react-uswds';
+import { Route, Switch, useRouteMatch } from 'react-router-dom';
+import { GridContainer } from '@trussworks/react-uswds';
 
 import MainContent from 'components/MainContent';
 import { NotFoundPartial } from 'views/NotFound';
 
+import AddNote from './AdminHome/AddNote';
+import CloseRequest from './AdminHome/CloseRequest';
+import Consult from './AdminHome/Consult';
+import TRBRequestInfoWrapper from './AdminHome/RequestContext';
+import RequestEdits from './AdminHome/RequestEdits';
+import DocumentUpload from './RequestForm/DocumentUpload';
+import AdminHome from './AdminHome';
+import AdviceLetterForm from './AdviceLetterForm';
 import Homepage from './Homepage';
-import StartRequest from './StartRequest';
-import Steps from './Steps';
+import ProcessFlow from './ProcessFlow';
+import PublicAdviceLetter from './PublicAdviceLetter';
+import RequestForm from './RequestForm';
+import RequestType from './RequestType';
+import TaskList from './TaskList';
+import TrbAttendees from './TrbAttendees';
+import TRBDocuments from './TrbDocuments';
 
-/**
- * Check for `requestType` to be set in location state or else redirect to `/trb/start`.
- */
-function RequestTypeRequired({ children }: { children: React.ReactNode }) {
-  const { state } = useLocation<{ requestType: string }>();
-  const requestType = state?.requestType;
-  if (!requestType) return <Redirect to="/trb/start" />;
-  return <>{children}</>;
-}
-
-/**
- * Generate a `BreadcrumbBar` from links.
- */
-function Breadcrumbs({ items }: { items: { text: string; url?: string }[] }) {
-  return (
-    <BreadcrumbBar className="padding-bottom-0">
-      {items.map((link, idx) => {
-        if (idx === items.length - 1) {
-          return (
-            <Breadcrumb key={link.text} current>
-              <span>{link.text}</span>
-            </Breadcrumb>
-          );
-        }
-        return (
-          <Breadcrumb key="last">
-            <BreadcrumbLink asCustom={Link} to={link.url!}>
-              <span>{link.text}</span>
-            </BreadcrumbLink>
-          </Breadcrumb>
-        );
-      })}
-    </BreadcrumbBar>
-  );
-}
+import './index.scss';
 
 function TechnicalAssistance() {
-  const { path, url } = useRouteMatch();
-  const { t } = useTranslation('technicalAssistance');
+  const { path } = useRouteMatch();
 
   return (
-    <MainContent className="technical-assistance grid-container margin-bottom-10">
+    <MainContent className="technical-assistance margin-bottom-5 desktop:margin-bottom-10">
       <Switch>
         <Route exact path={path}>
           <Homepage />
         </Route>
 
-        {/* Start a request */}
-        <Route exact path={`${path}/start`}>
-          <Breadcrumbs
-            items={[
-              { text: t('heading'), url },
-              { text: t('breadcrumbs.startTrbRequest') }
-            ]}
-          />
-          <StartRequest />
+        {/*
+          Starting a New Request begins with selecting a Request Type.
+          Existing Requests can update their request type.
+        */}
+        <Route exact path={[`${path}/start`, `${path}/type/:id?`]}>
+          <RequestType />
         </Route>
 
-        {/* Start request steps that require `requestType` to be set */}
-        <Route exact path={`${path}/steps`}>
-          <RequestTypeRequired>
-            <Breadcrumbs
-              items={[
-                { text: t('heading'), url },
-                { text: t('breadcrumbs.startTrbRequest') }
-              ]}
-            />
-            <Steps />
-          </RequestTypeRequired>
+        {/* Process flow shows info before proceeding to create new request */}
+        <Route exact path={`${path}/process`}>
+          <ProcessFlow />
         </Route>
 
-        {/* New request stub */}
-        <Route exact path={`${path}/new`}>
-          {({ location }: RouteChildrenProps<any, any>) => {
-            const requestType = location.state?.requestType;
-            return (
-              <RequestTypeRequired>
-                <>New TRB Request: {requestType}</>
-              </RequestTypeRequired>
-            );
-          }}
+        {/* Task list after request steps are completed */}
+        <Route exact path={`${path}/task-list/:id`}>
+          <TaskList />
         </Route>
 
-        {/* View a request stub */}
-        <Route exact path={`${path}/requests/:id`}>
-          {({ match }) => {
-            return <>View TRB Request {match?.params?.id}</>;
-          }}
+        {/* Documents table requester view from task list - prepare for TRB meeting */}
+        <Route exact path={`${path}/task-list/:id/documents`}>
+          <TRBDocuments />
         </Route>
+
+        {/* Documents upload requester view from task list - prepare for TRB meeting */}
+        <Route exact path={`${path}/task-list/:id/documents/upload`}>
+          <DocumentUpload />
+        </Route>
+
+        <Route path={`${path}/task-list/:id/attendees`}>
+          <TrbAttendees />
+        </Route>
+
+        {/* Public advice letter */}
+        <Route exact path={`${path}/advice-letter/:id`}>
+          <PublicAdviceLetter />
+        </Route>
+
+        {/* Create new or edit existing request */}
+        <Route exact path={`${path}/requests/:id/:step?/:view?`}>
+          <RequestForm />
+        </Route>
+
+        <Route path={`${path}/:id/advice/:formStep/:subpage?`}>
+          <AdviceLetterForm />
+        </Route>
+
+        {/* Admin view */}
+        <TRBRequestInfoWrapper>
+          <Route exact path={`${path}/:id/:activePage`}>
+            <AdminHome />
+          </Route>
+          {/* Admin request form actions */}
+          <Route
+            exact
+            path={`${path}/:id/:activePage/:action(request-edits|ready-for-consult)`}
+          >
+            <RequestEdits />
+          </Route>
+          <Route
+            exact
+            path={`${path}/:id/:activePage/:action(schedule-consult)`}
+          >
+            <Consult />
+          </Route>
+
+          <Route exact path={`${path}/:id/notes/add-note`}>
+            <AddNote />
+          </Route>
+
+          <Route
+            exact
+            path={`${path}/:id/:activePage/:action(close-request|reopen-request)`}
+          >
+            <CloseRequest />
+          </Route>
+        </TRBRequestInfoWrapper>
 
         <Route path="*">
-          <NotFoundPartial />
+          <GridContainer className="width-full">
+            <NotFoundPartial />
+          </GridContainer>
         </Route>
       </Switch>
     </MainContent>

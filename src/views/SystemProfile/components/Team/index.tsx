@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Alert,
   Button,
+  ButtonGroup,
   Card,
   CardBody,
+  CardFooter,
   CardGroup,
   CardHeader,
   Grid,
@@ -15,6 +16,7 @@ import {
 } from '@trussworks/react-uswds';
 import { useFlags } from 'launchdarkly-react-client-sdk';
 
+import Alert from 'components/shared/Alert';
 import {
   DescriptionDefinition,
   DescriptionTerm
@@ -27,7 +29,7 @@ import {
   teamSectionKeys
 } from 'constants/systemProfile';
 import {
-  RoleTypeId,
+  RoleTypeName,
   SystemProfileSubviewProps,
   TeamSectionKey,
   UsernameWithRoles
@@ -57,13 +59,17 @@ export function getTeam(
 
     // Members in Business Owner and Project Lead roles appear in both sections
     if (
-      roles.some(({ roleTypeID }) => roleTypeID === RoleTypeId.BUSINESS_OWNER)
+      roles.some(
+        ({ roleTypeName }) => roleTypeName === RoleTypeName.BUSINESS_OWNER
+      )
     ) {
       businessOwners.push(person);
     }
 
     if (
-      roles.some(({ roleTypeID }) => roleTypeID === RoleTypeId.PROJECT_LEAD)
+      roles.some(
+        ({ roleTypeName }) => roleTypeName === RoleTypeName.PROJECT_LEAD
+      )
     ) {
       projectLeads.push(person);
     }
@@ -72,9 +78,9 @@ export function getTeam(
     // Anyone else not a business owner or project lead appears here
     if (
       roles.every(
-        ({ roleTypeID }) =>
-          roleTypeID !== RoleTypeId.BUSINESS_OWNER &&
-          roleTypeID !== RoleTypeId.PROJECT_LEAD
+        ({ roleTypeName }) =>
+          roleTypeName !== RoleTypeName.BUSINESS_OWNER &&
+          roleTypeName !== RoleTypeName.PROJECT_LEAD
       )
     ) {
       additional.push(person);
@@ -88,42 +94,84 @@ export function getTeam(
   };
 }
 
+type TeamContactCardProps = {
+  user: UsernameWithRoles;
+  displayRoles?: boolean;
+  footerActions?: {
+    editRoles: () => any;
+    removeTeamMember: () => any;
+  };
+};
+
 /**
  * A card with team member info and a list of their roles.
  */
-const TeamContactCard = ({ user }: { user: UsernameWithRoles }) => {
+export const TeamContactCard = ({
+  user,
+  displayRoles = true,
+  footerActions
+}: TeamContactCardProps) => {
+  const { t } = useTranslation('systemProfile');
+
   const { roles } = user;
   if (roles.length === 0) return null;
 
   const person = roles[0]; // Get assignee info from the first role
 
   return (
-    <Card key={person.roleID} className="grid-col-12 margin-bottom-2">
-      <CardHeader className="padding-2 padding-bottom-0">
+    <Card className="grid-col-12 margin-bottom-2">
+      <CardHeader
+        className={`padding-x-2 padding-top-105 padding-bottom-${
+          displayRoles ? '0' : '2'
+        }`}
+      >
         <h3 className="margin-y-0">{getPersonFullName(person)}</h3>
         {person.assigneeEmail !== null && (
-          <div>
-            <Link
-              className="line-height-body-5"
-              href={`mailto:${person.assigneeEmail}`}
-              target="_blank"
-            >
-              {person.assigneeEmail}
-              <IconMailOutline className="margin-left-05 margin-bottom-2px text-tbottom" />
-            </Link>
-          </div>
+          <Link
+            className="line-height-body-5 display-flex flex-align-center"
+            href={`mailto:${person.assigneeEmail}`}
+            target="_blank"
+          >
+            {person.assigneeEmail}
+            <IconMailOutline className="margin-left-1" />
+          </Link>
         )}
       </CardHeader>
-      <CardBody className="padding-x-2 padding-top-0">
-        {roles.map(role => (
-          <h5
-            key={role.roleTypeID}
-            className="margin-y-0 font-sans-2xs text-normal"
-          >
-            {role.roleTypeName}
-          </h5>
-        ))}
-      </CardBody>
+      {displayRoles && (
+        <CardBody className="padding-x-2 padding-top-0">
+          {roles.map((role, index) => (
+            <h5
+              // eslint-disable-next-line react/no-array-index-key
+              key={`role-${index}`}
+              className="margin-y-0 font-sans-2xs text-normal"
+            >
+              {role.roleTypeName}
+            </h5>
+          ))}
+        </CardBody>
+      )}
+      {footerActions && (
+        <CardFooter className="padding-x-0 padding-y-105 margin-top-105 margin-x-2 border-top-1px border-base-light">
+          <ButtonGroup>
+            <Button
+              unstyled
+              type="button"
+              className="margin-right-1"
+              onClick={() => footerActions.editRoles()}
+            >
+              {t('singleSystem.editTeam.editRoles')}
+            </Button>
+            <Button
+              unstyled
+              type="button"
+              className="text-error"
+              onClick={() => footerActions.removeTeamMember()}
+            >
+              {t('singleSystem.editTeam.removeTeamMember')}
+            </Button>
+          </ButtonGroup>
+        </CardFooter>
+      )}
     </Card>
   );
 };

@@ -96,7 +96,7 @@ func (m mockS3Client) GetObjectTagging(input *s3.GetObjectTaggingInput) (*s3.Get
 
 	return &s3.GetObjectTaggingOutput{
 		TagSet: []*s3.Tag{{
-			Key:   aws.String("av-status"),
+			Key:   aws.String(upload.AVStatusTagName),
 			Value: aws.String(m.AVStatus),
 		}},
 	}, nil
@@ -123,7 +123,7 @@ func TestGraphQLTestSuite(t *testing.T) {
 	ldClient, err := ld.MakeCustomClient("fake", ld.Config{Offline: true}, 0)
 	assert.NoError(t, err)
 
-	store, err := storage.NewStore(logger, dbConfig, ldClient)
+	store, err := storage.NewStore(dbConfig, ldClient)
 	if err != nil {
 		fmt.Printf("Failed to get new database: %v", err)
 		t.FailNow()
@@ -149,13 +149,13 @@ func TestGraphQLTestSuite(t *testing.T) {
 
 	cedarLdapClient := local.NewCedarLdapClient(logger)
 
-	cedarCoreClient := cedarcore.NewClient(appcontext.WithLogger(context.Background(), logger), "fake", "fake", time.Minute, ldClient)
+	cedarCoreClient := cedarcore.NewClient(appcontext.WithLogger(context.Background(), logger), "fake", "fake", "1.0.0", time.Minute, ldClient)
 
 	directives := generated.DirectiveRoot{HasRole: func(ctx context.Context, obj interface{}, next graphql.Resolver, role model.Role) (res interface{}, err error) {
 		return next(ctx)
 	}}
 
-	issueLifecycleID := func(ctx context.Context, intake *models.SystemIntake, action *models.Action, shouldSendEmail bool, recipients *models.EmailNotificationRecipients) (*models.SystemIntake, error) {
+	issueLifecycleID := func(ctx context.Context, intake *models.SystemIntake, action *models.Action, recipients *models.EmailNotificationRecipients) (*models.SystemIntake, error) {
 		if intake.LifecycleID.ValueOrZero() == "" {
 			intake.LifecycleID = null.StringFrom("654321B")
 		}
@@ -191,13 +191,9 @@ func TestGraphQLTestSuite(t *testing.T) {
 	resolverService.CreateActionExtendLifecycleID = services.NewCreateActionExtendLifecycleID(
 		serviceConfig,
 		saveAction,
-		cedarLdapClient.FetchUserInfo,
 		store.FetchSystemIntakeByID,
 		store.UpdateSystemIntake,
-		emailClient.SendExtendLCIDEmail,
-		emailClient.SendExtendLCIDEmailToMultipleRecipients,
-		emailClient.SendIntakeInvalidEUAIDEmail,
-		emailClient.SendIntakeNoEUAIDEmail,
+		emailClient.SendExtendLCIDEmails,
 	)
 
 	resolver := NewResolver(store, resolverService, &s3Client, &emailClient, ldClient, cedarCoreClient)

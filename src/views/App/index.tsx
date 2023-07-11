@@ -1,4 +1,5 @@
-import React, { useLayoutEffect } from 'react';
+import React, { useEffect, useLayoutEffect } from 'react';
+import ReactGA from 'react-ga4';
 import {
   BrowserRouter,
   Redirect,
@@ -7,6 +8,7 @@ import {
   useLocation
 } from 'react-router-dom';
 import { LoginCallback, SecureRoute } from '@okta/okta-react';
+import { GovBanner } from '@trussworks/react-uswds';
 import { useFlags } from 'launchdarkly-react-client-sdk';
 
 import Footer from 'components/Footer';
@@ -22,14 +24,16 @@ import FlagsWrapper from 'views/FlagsWrapper';
 import GovernanceOverview from 'views/GovernanceOverview';
 import GovernanceReviewTeam from 'views/GovernanceReviewTeam';
 import GovernanceTaskList from 'views/GovernanceTaskList';
-import GovernanceFeedback from 'views/GovernanceTaskList/Feedback';
-import LcidInfo from 'views/GovernanceTaskList/LcidInfo';
-import RequestDecision from 'views/GovernanceTaskList/RequestDecision';
+import GovernanceTaskListV1 from 'views/GovernanceTaskListV1';
+import GovernanceFeedback from 'views/GovernanceTaskListV1/Feedback';
+import LcidInfo from 'views/GovernanceTaskListV1/LcidInfo';
+import RequestDecision from 'views/GovernanceTaskListV1/RequestDecision';
 import Help from 'views/Help';
 import Home from 'views/Home';
 import Login from 'views/Login';
 import MakingARequest from 'views/MakingARequest';
 import MyRequests from 'views/MyRequests';
+import Navigation from 'views/Navigation';
 import NotFound from 'views/NotFound';
 import PrepareForGRB from 'views/PrepareForGRB';
 import PrepareForGRT from 'views/PrepareForGRT';
@@ -39,6 +43,7 @@ import Sandbox from 'views/Sandbox';
 import SystemIntake from 'views/SystemIntake';
 import SystemList from 'views/SystemList';
 import SystemProfile from 'views/SystemProfile';
+import TableStateWrapper from 'views/TableStateWrapper';
 import TechnicalAssistance from 'views/TechnicalAssistance';
 import TermsAndConditions from 'views/TermsAndConditions';
 import TimeOutWrapper from 'views/TimeOutWrapper';
@@ -54,6 +59,13 @@ import './index.scss';
 const AppRoutes = () => {
   const location = useLocation();
   const flags = useFlags();
+
+  // Track GA Pages
+  useEffect(() => {
+    if (location.pathname) {
+      ReactGA.send({ hitType: 'pageview', page: location.pathname });
+    }
+  }, [location.pathname]);
 
   // Scroll to top
   useLayoutEffect(() => {
@@ -72,8 +84,12 @@ const AppRoutes = () => {
       <SecureRoute path="/my-requests" component={MyRequests} />
 
       {/* 508 / Accessibility Team Routes */}
-      <Redirect exact from="/508" to="/508/making-a-request" />
-      <SecureRoute path="/508" component={Accessibility} />
+      {!flags.hide508Workflow && (
+        <Redirect exact from="/508" to="/508/making-a-request" />
+      )}
+      {!flags.hide508Workflow && (
+        <SecureRoute path="/508" component={Accessibility} />
+      )}
 
       {/* GRT/GRB Routes */}
       <SecureRoute
@@ -88,15 +104,27 @@ const AppRoutes = () => {
         path="/system/request-type"
         component={RequestTypeForm}
       />
-      <Route
+      <SecureRoute
         path="/governance-overview/:systemId?"
         component={GovernanceOverview}
       />
-      <SecureRoute
-        path="/governance-task-list/:systemId"
-        exact
-        component={GovernanceTaskList}
-      />
+
+      {flags.itGovV2Enabled ? (
+        // IT Gov V2
+        <SecureRoute
+          path="/governance-task-list/:systemId"
+          exact
+          component={GovernanceTaskList}
+        />
+      ) : (
+        // IT Gov V1
+        <SecureRoute
+          path="/governance-task-list/:systemId"
+          exact
+          component={GovernanceTaskListV1}
+        />
+      )}
+
       <SecureRoute
         path="/governance-task-list/:systemId/feedback"
         exact
@@ -129,7 +157,7 @@ const AppRoutes = () => {
         to="/system/:systemId/contact-details"
       />
       <SecureRoute
-        path="/system/:systemId/:formPage"
+        path="/system/:systemId/:formPage/:subPage?"
         component={SystemIntake}
       />
       {flags.systemProfile && (
@@ -144,7 +172,7 @@ const AppRoutes = () => {
       )}
       {flags.systemProfile && (
         <SecureRoute
-          path="/systems/:systemId/:subinfo/:top?"
+          path="/systems/:systemId/:subinfo/:edit(edit)?/:action(team-member)?/:top(top)?"
           exact
           component={SystemProfile}
         />
@@ -180,15 +208,21 @@ const AppRoutes = () => {
       />
 
       {/* Misc Routes */}
-      {flags.sandbox && <Route path="/sandbox" exact component={Sandbox} />}
       {flags.sandbox && (
-        <Route path="/sandbox/:systemId" exact component={SystemProfile} />
+        <SecureRoute path="/sandbox" exact component={Sandbox} />
+      )}
+      {flags.sandbox && (
+        <SecureRoute
+          path="/sandbox/:systemId"
+          exact
+          component={SystemProfile}
+        />
       )}
 
       <Route path="/implicit/callback" component={LoginCallback} />
 
       {/* 404 */}
-      <Route path="*" component={NotFound} />
+      <SecureRoute path="*" component={NotFound} />
     </Switch>
   );
 };
@@ -214,11 +248,16 @@ const App = () => {
               <UserInfoWrapper>
                 <TimeOutWrapper>
                   <NavContextProvider>
-                    <PageWrapper>
-                      <Header />
-                      <AppRoutes />
-                      <Footer />
-                    </PageWrapper>
+                    <TableStateWrapper>
+                      <PageWrapper>
+                        <GovBanner />
+                        <Header />
+                        <Navigation>
+                          <AppRoutes />
+                        </Navigation>
+                        <Footer />
+                      </PageWrapper>
+                    </TableStateWrapper>
                   </NavContextProvider>
                 </TimeOutWrapper>
               </UserInfoWrapper>

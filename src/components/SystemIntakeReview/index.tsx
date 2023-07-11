@@ -9,11 +9,15 @@ import {
 } from 'components/shared/DescriptionGroup';
 import contractStatus from 'constants/enums/contractStatus';
 import { yesNoMap } from 'data/common';
+import useSystemIntakeContacts from 'hooks/useSystemIntakeContacts';
 import { GetSystemIntake_systemIntake as SystemIntake } from 'queries/types/GetSystemIntake';
 import { SystemIntakeStatus } from 'types/graphql-global-types';
 import convertBoolToYesNo from 'utils/convertBoolToYesNo';
-import { formatContractDate, formatDate } from 'utils/date';
+import { formatContractDate, formatDateLocal } from 'utils/date';
 import { FundingSourcesListItem } from 'views/SystemIntake/ContractDetails/FundingSources';
+import DocumentsTable from 'views/SystemIntake/Documents/DocumentsTable';
+
+import './index.scss';
 
 type SystemIntakeReviewProps = {
   systemIntake: SystemIntake;
@@ -30,6 +34,11 @@ export const SystemIntakeReview = ({
   systemIntake
 }: SystemIntakeReviewProps) => {
   const { contract, status, submittedAt } = systemIntake;
+  const {
+    contacts: {
+      data: { requester, businessOwner, productManager, isso }
+    }
+  } = useSystemIntakeContacts(systemIntake.id);
   const { t } = useTranslation('intake');
 
   const fundingDefinition = () => {
@@ -74,9 +83,9 @@ export const SystemIntakeReview = ({
     );
   };
   const issoDefinition = () => {
-    const hasIsso = convertBoolToYesNo(systemIntake.isso.isPresent);
-    if (systemIntake.isso.isPresent) {
-      return `${hasIsso}, ${systemIntake.isso.name}`;
+    const hasIsso = convertBoolToYesNo(!!isso.commonName);
+    if (isso.commonName) {
+      return `${hasIsso}, ${isso.commonName}`;
     }
     return hasIsso;
   };
@@ -87,7 +96,7 @@ export const SystemIntakeReview = ({
     }
 
     if (submittedAt) {
-      return formatDate(submittedAt);
+      return formatDateLocal(submittedAt, 'MMMM d, yyyy');
     }
 
     return 'N/A';
@@ -109,43 +118,33 @@ export const SystemIntakeReview = ({
 
       <DescriptionList title={t('review.contactDetails')}>
         <ReviewRow>
-          <div>
+          <div data-testid={`contact-requester-${requester.id}`}>
             <DescriptionTerm term={t('fields.requester')} />
-            <DescriptionDefinition definition={systemIntake.requester.name} />
+            <DescriptionDefinition definition={requester.commonName} />
           </div>
           <div>
             <DescriptionTerm term={t('review.requesterComponent')} />
-            <DescriptionDefinition
-              definition={systemIntake.requester.component}
-            />
+            <DescriptionDefinition definition={requester.component} />
           </div>
         </ReviewRow>
         <ReviewRow>
           <div>
             <DescriptionTerm term={t('review.cmsBusinessOwnerName')} />
-            <DescriptionDefinition
-              definition={systemIntake.businessOwner.name}
-            />
+            <DescriptionDefinition definition={businessOwner.commonName} />
           </div>
           <div>
             <DescriptionTerm term={t('review.cmsBusinessOwnerComponent')} />
-            <DescriptionDefinition
-              definition={systemIntake.businessOwner.component}
-            />
+            <DescriptionDefinition definition={businessOwner.component} />
           </div>
         </ReviewRow>
         <ReviewRow>
           <div>
             <DescriptionTerm term={t('review.cmsProjectManagerName')} />
-            <DescriptionDefinition
-              definition={systemIntake.productManager.name}
-            />
+            <DescriptionDefinition definition={productManager.commonName} />
           </div>
           <div>
             <DescriptionTerm term={t('review.cmsProjectManagerComponent')} />
-            <DescriptionDefinition
-              definition={systemIntake.productManager.component}
-            />
+            <DescriptionDefinition definition={productManager.component} />
           </div>
         </ReviewRow>
         <ReviewRow>
@@ -211,6 +210,14 @@ export const SystemIntakeReview = ({
             />
           </div>
         </ReviewRow>
+        <ReviewRow>
+          <div>
+            <DescriptionTerm term={t('review.hasUiChanges')} />
+            <DescriptionDefinition
+              definition={convertBoolToYesNo(systemIntake.hasUiChanges)}
+            />
+          </div>
+        </ReviewRow>
       </DescriptionList>
 
       <hr className="system-intake__hr" />
@@ -223,25 +230,43 @@ export const SystemIntakeReview = ({
             <DescriptionDefinition definition={fundingDefinition()} />
           </div>
         </ReviewRow>
-        <ReviewRow>
-          <div>
-            <DescriptionTerm term={t('review.costs')} />
-            <DescriptionDefinition
-              definition={
-                systemIntake.costs.isExpectingIncrease &&
-                yesNoMap[systemIntake.costs.isExpectingIncrease]
-              }
-            />
-          </div>
-          {systemIntake.costs.isExpectingIncrease === 'YES' && (
+        {/* Conditionally render annual spending (current) or cost (legacy) questions and answers */}
+        {systemIntake.annualSpending?.currentAnnualSpending ? (
+          <ReviewRow>
             <div>
-              <DescriptionTerm term={t('review.increase')} />
+              <DescriptionTerm term={t('review.currentAnnualSpending')} />
               <DescriptionDefinition
-                definition={systemIntake.costs.expectedIncreaseAmount}
+                definition={systemIntake.annualSpending.currentAnnualSpending}
               />
             </div>
-          )}
-        </ReviewRow>
+            <div>
+              <DescriptionTerm term={t('review.plannedYearOneSpending')} />
+              <DescriptionDefinition
+                definition={systemIntake.annualSpending.plannedYearOneSpending}
+              />
+            </div>
+          </ReviewRow>
+        ) : (
+          <ReviewRow>
+            <div>
+              <DescriptionTerm term={t('review.costs')} />
+              <DescriptionDefinition
+                definition={
+                  systemIntake.costs?.isExpectingIncrease &&
+                  yesNoMap[systemIntake.costs.isExpectingIncrease]
+                }
+              />
+            </div>
+            {systemIntake.costs?.isExpectingIncrease === 'YES' && (
+              <div>
+                <DescriptionTerm term={t('review.increase')} />
+                <DescriptionDefinition
+                  definition={systemIntake.costs.expectedIncreaseAmount}
+                />
+              </div>
+            )}
+          </ReviewRow>
+        )}
         <ReviewRow>
           <div>
             <DescriptionTerm term={t('review.contract')} />
@@ -301,6 +326,10 @@ export const SystemIntakeReview = ({
           </>
         )}
       </DescriptionList>
+
+      <hr className="system-intake__hr" />
+      <h2 className="font-heading-xl">{t('review.documents')}</h2>
+      <DocumentsTable systemIntake={systemIntake} />
     </div>
   );
 };

@@ -29,6 +29,7 @@ import {
   useFormikContext
 } from 'formik';
 
+import CharacterCounter from 'components/CharacterCounter';
 import HelpBreadcrumb from 'components/HelpBreadcrumb';
 import MainContent from 'components/MainContent';
 import {
@@ -320,6 +321,8 @@ export async function parseFeedbackForm(
     strict: true
   });
 
+  // Yup cast method is returning easiServicesUsed string[] | undefined instead of string[]
+  // @ts-ignore
   return parsed;
 }
 
@@ -604,6 +607,10 @@ const SendFeedback = () => {
                         as={Textarea}
                         id="howCanWeImprove"
                         name="howCanWeImprove"
+                      />
+                      <CharacterCounter
+                        id="howCanWeImprove-counter"
+                        characterCount={2000 - values.howCanWeImprove.length}
                       />
                     </FormGroup>
                     <HelpFormSubmitFooter submit={t('sendFeedback.submit')} />

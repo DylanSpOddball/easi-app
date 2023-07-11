@@ -116,7 +116,7 @@ def up(frontend_included, *args, debug:false, wait:false)
     conf =ENV["AIR_CONFIG_DEBUG"]
     if wait
       conf =ENV["AIR_CONFIG_DEBUG_WAIT"]
-    end      
+    end
   end
   environment = {
     "COMPOSE_HTTP_TIMEOUT" => "120",
@@ -130,10 +130,10 @@ def up(frontend_included, *args, debug:false, wait:false)
   sh(environment, command, verbose: true)
 
   if !wait
-    wait_for_success("Waiting for the back end to build...", "curl --silent --output /dev/null -m 1 localhost:8080/api/v1/healthcheck")  
+    wait_for_success("Waiting for the back end to build...", "curl --silent --output /dev/null -m 1 localhost:8080/api/v1/healthcheck")
   else
-    check = "echo '{\"method\":\"RPCServer.State\",\"params\":[],\"id\":1}' | nc -w 1 localhost 2345 | grep 'result' -q" 
-    wait_for_success("Waiting for backend debug server...", check) 
+    check = "echo '{\"method\":\"RPCServer.State\",\"params\":[],\"id\":1}' | nc -w 1 localhost 2345 | grep 'result' -q"
+    wait_for_success("Waiting for backend debug server...", check)
     puts "✨ Make sure to connect the debugger, or the backend service won't start ✨ "
   end
 
@@ -153,11 +153,11 @@ namespace :up do
     up(true)
   end
 
-  desc "Starts all services in the project. With backend DEBUGGING"    
+  desc "Starts all services in the project. With backend DEBUGGING"
   task :debug do
     up(true, "-d", debug: true)
   end
-  desc "Starts all services in the project. With backend DEBUGGING, and also will wait to start the backend service until the debugger attaches"    
+  desc "Starts all services in the project. With backend DEBUGGING, and also will wait to start the backend service until the debugger attaches"
   namespace :debug do
     task :wait do
       up(true, "-d", debug: true, wait: true)
@@ -175,11 +175,11 @@ namespace :up do
       up(false)
     end
 
-    desc "Starts all services in the foreground except the frontend (runs more quickly, if frontend isn't needed). With DEBUGGING"    
+    desc "Starts all services in the foreground except the frontend (runs more quickly, if frontend isn't needed). With DEBUGGING"
     task :debug do
       up(false, "-d", debug: true)
     end
-    desc "Starts all services in the foreground except the frontend (runs more quickly, if frontend isn't needed). With DEBUGGING, and also will wait to start the backend service until the debugger attaches"    
+    desc "Starts all services in the foreground except the frontend (runs more quickly, if frontend isn't needed). With DEBUGGING, and also will wait to start the backend service until the debugger attaches"
     namespace :debug do
       task :wait do
         up(false, "-d", debug: true, wait: true)
@@ -293,25 +293,25 @@ task :reset => :up do
 end
 
 namespace :hosts do
-  desc "Verify that hosts for local development are configured"
+  desc "Verify that hosts for OSX local development are configured"
   task :check do
-    lookup = `dscacheutil -q host -a name minio`.strip
-    if lookup.size == 0 && ask?("Host 'minio' can't be resolved. Do you want to configure it now? (Y/n)")
+    lookup = `dscacheutil -q host -a name host.docker.internal`.strip
+    if lookup.size == 0 && ask?("Host 'host.docker.internal' can't be resolved. Do you want to configure it now? (Y/n)")
       Rake::Task["hosts:install"].invoke
 
       Rake::Task["hosts:install"].reenable
       Rake::Task["hosts:check"].invoke
     elsif lookup.include?("ip_address: 127.0.0.1")
-      puts "Host 'minio' is resolving correctly."
+      puts "Host 'host.docker.internal' is resolving correctly."
     else
-      puts "Host 'minio' resolved, but not to the correct IP:"
+      puts "Host 'host.docker.internal' resolved, but not to the correct IP:"
       puts lookup
       exit(1)
     end
   end
 
   task :install do
-    sh("echo '127.0.0.1 minio' | sudo tee -a /etc/hosts") &&
+    sh("echo '127.0.0.1 host.docker.internal' | sudo tee -a /etc/hosts") &&
       sh("sudo killall -HUP mDNSResponder") &&
       sh("sudo dscacheutil -flushcache")
   end
@@ -323,8 +323,8 @@ namespace :db do
     sh "docker-compose start db_migrate"
     loop do
       sleep 0.5
-      status = `docker-compose ps | grep "db_migrate_1"`
-      match = /Exit (\d+)/.match(status)
+      status = `docker-compose ps -a | grep "db_migrate-1"`
+      match = /Exited \((\d+)\)/.match(status)
       if match
         unless match[1] == "0"
           puts "\n\n🚨 Migration failed! 🚨 Displaying logs from that container:\n\n"
@@ -343,7 +343,7 @@ namespace :db do
 
   desc "Load development dataset"
   task :seed do
-    sh "go run cmd/devdata/main.go"
+    sh "go run cmd/devdata/*.go"
   end
 
   task :drop_connections do
@@ -354,6 +354,8 @@ namespace :db do
   task :clean do
     tables = %w{
       cedar_system_bookmarks
+      trb_request_funding_sources
+      trb_request_system_intakes
       accessibility_request_status_records
       accessibility_request_notes
       accessibility_request_documents
@@ -364,10 +366,19 @@ namespace :db do
       estimated_lifecycle_costs
       business_cases
       grt_feedback
+      governance_request_feedback
       system_intake_contacts
       system_intake_funding_sources
+      system_intake_documents
       system_intakes
+      trb_lead_options
+      trb_request_documents
+      trb_request_forms
       trb_request_attendees
+      trb_request_feedback
+      trb_advice_letter_recommendations
+      trb_admin_notes
+      trb_advice_letters
       trb_request
     }
     sql = tables.map { |table| "DELETE FROM #{table};" }.join

@@ -8,12 +8,12 @@ import {
 describe('Homepage', () => {
   it('shows the basic homepage for no user roles', () => {
     cy.localLogin({ name: 'USR1' });
-    cy.contains('h3', 'My governance requests');
+    cy.contains('h3', 'My requests');
   });
 
   it('shows the basic homepage for basic easi role', () => {
     cy.localLogin({ name: 'USR2', role: BASIC_USER_PROD });
-    cy.contains('h3', 'My governance requests');
+    cy.contains('h3', 'My requests');
   });
 
   it('shows the 508 table to 508 admins', () => {
@@ -28,6 +28,6 @@ describe('Homepage', () => {
 
   it('shows the governance table to GRT folks', () => {
     cy.localLogin({ name: 'USR5', role: GOVTEAM_DEV });
-    cy.contains('button', 'Open Requests');
+    cy.contains('button', 'Open requests');
   });
 });

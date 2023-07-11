@@ -1,8 +1,8 @@
 {
   "swagger": "2.0",
   "info": {
-    "description": "# Introduction\n \n    The CMS Enterprise Data and Analytics Repository (CEDAR) Core API provides the CRUD (where applicable) operations for Budget, Component, Contract, Data Center, Deployment, Exchange, Person, Role Stake Holder, System Detail, System Summary and User objects.\n\n# Specification\n\nThis API is published in Swagger JSON 2.0 format and can be exported for consumption. For each of the resource, API provides **GET**, **POST**, **DELETE** operations. And to invoke, any of these methods, you can request for an `access-token`. In addition, POST & DELETE methods are not permitted in Production.\n",
-    "version": "1.0.0",
+    "description": "The CMS Enterprise Data and Analytics Repository (CEDAR) Core API provides the CRUD (where applicable) operations for Budget, Component, Contract, Data Center, Deployment, Exchange, Person, Role Stake Holder, System Detail, System Summary and User objects.\n\n# Specification\n\nThis API is published in Swagger JSON 2.0 format and can be exported for consumption. For each of the resource, API provides **GET**, **POST**, **DELETE** operations. And to invoke, any of these methods, you can request for an `access-token`. In addition, POST & DELETE methods are not permitted in Production.\n",
+    "version": "2.0.0",
     "title": "CEDAR Core API",
     "termsOfService": "https://www.cedardev.cms.gov/",
     "contact": {
@@ -10,38 +10,14 @@
     }
   },
   "host": "webmethods-apigw.cedarimpl.cms.gov",
-  "basePath": "/gateway/CEDAR Core API/1.0.0",
+  "basePath": "/gateway/CEDAR Core API/2.0.0",
   "tags": [
     {
-      "name": "authority to operate",
-      "description": ""
-    },
-    {
-      "name": "cost type",
-      "description": ""
-    },
-    {
-      "name": "domain model",
-      "description": ""
-    },
-    {
-      "name": "organization",
-      "description": ""
-    },
-    {
-      "name": "support contact",
-      "description": ""
-    },
-    {
-      "name": "threat",
+      "name": "softwareProducts",
       "description": ""
     },
     {
       "name": "url",
-      "description": ""
-    },
-    {
-      "name": "budget",
       "description": ""
     },
     {
@@ -884,6 +860,68 @@
           },
           "500": {
             "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/Response"
+            }
+          }
+        }
+      }
+    },
+    "/softwareProducts": {
+      "get": {
+        "tags": [
+          "softwareProducts"
+        ],
+        "summary": "Retrieve a list of softwareProducts. This interface takes in id and version.",
+        "description": "Retrieve a list of softwareProducts. This interface takes in id and version.",
+        "operationId": "softwareProductsFindList",
+        "consumes": [],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "description": "Application ID.",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "description": "Stakeholder version.",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/SoftwareProductsFindResponse"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/Response"
+            }
+          },
+          "401": {
+            "description": "Access Denied",
+            "schema": {
+              "$ref": "#/definitions/Response"
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "schema": {
+              "$ref": "#/definitions/Response"
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "schema": {
               "$ref": "#/definitions/Response"
             }
@@ -2832,7 +2870,7 @@
             "description": "Limits the number of systems returned. If no value is provided, the default is 1000",
             "required": false,
             "type": "integer",
-            "format": "int64"
+            "format": "int32"
           },
           {
             "name": "offset",
@@ -2840,7 +2878,7 @@
             "description": "Defines the starting position of the first record returned. If no value is provided, the default is 0",
             "required": false,
             "type": "integer",
-            "format": "int64"
+            "format": "int32"
           }
         ],
         "responses": {
@@ -3505,6 +3543,26 @@
         }
       }
     },
+    "Products": {
+      "type": "object",
+      "required": [
+        "technopedia_id"
+      ],
+      "properties": {
+        "api_gateway_use": {
+          "type": "boolean"
+        },
+        "local_component_refstr": {
+          "type": "string"
+        },
+        "provides_ai_capability": {
+          "type": "boolean"
+        },
+        "technopedia_id": {
+          "type": "string"
+        }
+      }
+    },
     "BudgetFindResponse": {
       "type": "object",
       "required": [
@@ -4081,6 +4139,17 @@
     "Exchange": {
       "type": "object",
       "properties": {
+        "apiOwnership": {
+          "type": "string",
+          "example": ""
+        },
+        "businessPurposeOfAddress": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "example": "Customer Service"
+          }
+        },
         "connectionFrequency": {
           "type": "array",
           "items": {
@@ -4092,6 +4161,9 @@
           "type": "boolean"
         },
         "containsBeneficiaryAddress": {
+          "type": "boolean"
+        },
+        "containsHealthDisparityData": {
           "type": "boolean"
         },
         "containsPhi": {
@@ -4157,6 +4229,9 @@
             "application",
             "organization"
           ]
+        },
+        "isAddressEditable": {
+          "type": "boolean"
         },
         "isBeneficiaryMailingFile": {
           "type": "boolean"
@@ -4225,6 +4300,10 @@
         "assigneeId": {
           "type": "string",
           "description": "ID of the role assignee, if a person"
+        },
+        "assigneeIsDeleted": {
+          "type": "string",
+          "description": "Indicated the person assigned the role is marked for deletion"
         },
         "assigneeLastName": {
           "type": "string"
@@ -4402,6 +4481,20 @@
         }
       }
     },
+    "DataCenterHosting": {
+      "type": "object",
+      "properties": {
+        "movingToCloud": {
+          "type": "string",
+          "example": "Yes"
+        },
+        "movingToCloudDate": {
+          "type": "string",
+          "format": "date",
+          "example": "2021-10-13T00:00:00.000Z"
+        }
+      }
+    },
     "AuthorityToOperateFindResponse": {
       "type": "object",
       "required": [
@@ -4438,6 +4531,11 @@
           "items": {
             "$ref": "#/definitions/BudgetIds"
           }
+        },
+        "contractADO": {
+          "type": "string",
+          "example": "yes",
+          "description": "Is ADO Parent Contract, Yes/No"
         },
         "contractDeliverableId": {
           "type": "string",
@@ -4617,6 +4715,9 @@
         "id": {
           "type": "string"
         },
+        "isDeleted": {
+          "type": "boolean"
+        },
         "lastName": {
           "type": "string"
         },
@@ -4716,6 +4817,44 @@
         },
         "vendorProduct": {
           "type": "string"
+        }
+      }
+    },
+    "SoftwareProductDetails": {
+      "type": "object",
+      "properties": {
+        "aiPlan": {
+          "type": "string"
+        },
+        "apiDataArea": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "apiFHIRUse": {
+          "type": "string"
+        },
+        "apiFHIRUseOther": {
+          "type": "string"
+        },
+        "apisAccessibility": {
+          "type": "string"
+        },
+        "apisDeveloped": {
+          "type": "string"
+        },
+        "systemAiType": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "systemAiTypeOther": {
+          "type": "string"
+        },
+        "systemHasApiGateway": {
+          "type": "boolean"
         }
       }
     },
@@ -4830,6 +4969,12 @@
       "properties": {
         "BusinessOwnerInformation": {
           "$ref": "#/definitions/BusinessOwnerInformation"
+        },
+        "DataCenterHosting": {
+          "$ref": "#/definitions/DataCenterHosting"
+        },
+        "SoftwareProductDetails": {
+          "$ref": "#/definitions/SoftwareProductDetails"
         },
         "SystemMaintainerInformation": {
           "$ref": "#/definitions/SystemMaintainerInformation"
@@ -5149,6 +5294,23 @@
         }
       }
     },
+    "SoftwareProducts": {
+      "type": "object",
+      "properties": {
+        "Products": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Products"
+          }
+        },
+        "deleted": {
+          "type": "boolean"
+        },
+        "updated": {
+          "type": "boolean"
+        }
+      }
+    },
     "SupportContactAddRequest": {
       "type": "object",
       "required": [
@@ -5294,6 +5456,17 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/Contract"
+          }
+        }
+      }
+    },
+    "SoftwareProductsFindResponse": {
+      "type": "object",
+      "properties": {
+        "SoftwareProducts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SoftwareProducts"
           }
         }
       }

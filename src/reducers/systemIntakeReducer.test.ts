@@ -30,7 +30,16 @@ describe('The system intake reducer', () => {
     solution: '',
     processStatus: '',
     eaSupportRequest: null,
-    existingContract: ''
+    hasUiChanges: null,
+    existingContract: '',
+    archivedAt: null,
+    createdAt: null,
+    decidedAt: null,
+    grbDate: null,
+    grtDate: null,
+    lcidExpiresAt: null,
+    submittedAt: null,
+    updatedAt: null
   };
   it('returns the initial state', () => {
     // @ts-ignore

@@ -10,7 +10,7 @@ import { MessageProvider } from 'hooks/useMessage';
 import GetSystemIntakeQuery from 'queries/GetSystemIntakeQuery';
 import { CreateSystemIntake } from 'queries/SystemIntakeQueries';
 import GovernanceOverview from 'views/GovernanceOverview';
-import GovernanceTaskList from 'views/GovernanceTaskList';
+import GovernanceTaskList from 'views/GovernanceTaskListV1';
 import SystemIntake from 'views/SystemIntake';
 
 import RequestTypeForm from './index';
@@ -75,6 +75,10 @@ const intakeQuery = (intakeData: any) => {
             isExpectingIncrease: null,
             expectedIncreaseAmount: null
           },
+          annualSpending: {
+            currentAnnualSpending: 'Test Current Annual Spending',
+            plannedYearOneSpending: 'Test Planned Year One Spending'
+          },
           currentStage: null,
           decisionNextSteps: null,
           grbDate: null,
@@ -120,6 +124,8 @@ const intakeQuery = (intakeData: any) => {
             content: null,
             createdAt: null
           },
+          hasUiChanges: null,
+          documents: [],
           ...intakeData
         }
       }
@@ -275,41 +281,6 @@ describe('The request type form page', () => {
     expect(
       await screen.findByTestId('governance-task-list')
     ).toBeInTheDocument();
-  });
-
-  it('creates a shutdown intake', async () => {
-    const intakeMutation = {
-      request: {
-        query: CreateSystemIntake,
-        variables: {
-          input: {
-            requestType: 'SHUTDOWN',
-            requester: {
-              name: 'John Doe'
-            }
-          }
-        }
-      },
-      result: {
-        data: {
-          createSystemIntake: {
-            id: INTAKE_ID,
-            status: 'INTAKE_DRAFT',
-            requestType: 'SHUTDOWN',
-            requester: {
-              name: 'John Doe'
-            }
-          }
-        }
-      }
-    };
-
-    renderPage([intakeMutation, intakeQuery({})]);
-
-    screen.getByRole('radio', { name: /decommission/i }).click();
-    screen.getByRole('button', { name: /continue/i }).click();
-
-    expect(await screen.findByTestId('system-intake')).toBeInTheDocument();
   });
 
   it('executes request type validations', async () => {

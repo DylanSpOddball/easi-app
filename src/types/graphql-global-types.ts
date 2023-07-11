@@ -66,6 +66,114 @@ export enum GRTFeedbackType {
 }
 
 /**
+ * Represents the possible actions that can provide feedback on a governance request
+ */
+export enum GovernanceRequestFeedbackSourceAction {
+  PROGRESS_TO_NEW_STEP = "PROGRESS_TO_NEW_STEP",
+  REQUEST_EDITS = "REQUEST_EDITS",
+}
+
+/**
+ * Represents the possible forms on a governance request that can receive feedback
+ */
+export enum GovernanceRequestFeedbackTargetForm {
+  DRAFT_BUSINESS_CASE = "DRAFT_BUSINESS_CASE",
+  FINAL_BUSINESS_CASE = "FINAL_BUSINESS_CASE",
+  INTAKE_REQUEST = "INTAKE_REQUEST",
+  NO_TARGET_PROVIDED = "NO_TARGET_PROVIDED",
+}
+
+/**
+ * The requester view of the IT gov Decision step status
+ */
+export enum ITGovDecisionStatus {
+  CANT_START = "CANT_START",
+  COMPLETED = "COMPLETED",
+  IN_REVIEW = "IN_REVIEW",
+}
+
+/**
+ * The requester view of the IT gov draft business case step status
+ */
+export enum ITGovDraftBusinessCaseStatus {
+  CANT_START = "CANT_START",
+  COMPLETED = "COMPLETED",
+  EDITS_REQUESTED = "EDITS_REQUESTED",
+  IN_PROGRESS = "IN_PROGRESS",
+  NOT_NEEDED = "NOT_NEEDED",
+  READY = "READY",
+}
+
+/**
+ * The requester view of the IT gov feedback step status
+ */
+export enum ITGovFeedbackStatus {
+  CANT_START = "CANT_START",
+  COMPLETED = "COMPLETED",
+  IN_REVIEW = "IN_REVIEW",
+}
+
+/**
+ * The requester view of the IT Gov Final Business Case step status
+ */
+export enum ITGovFinalBusinessCaseStatus {
+  CANT_START = "CANT_START",
+  COMPLETED = "COMPLETED",
+  EDITS_REQUESTED = "EDITS_REQUESTED",
+  IN_PROGRESS = "IN_PROGRESS",
+  NOT_NEEDED = "NOT_NEEDED",
+  READY = "READY",
+}
+
+/**
+ * The requester view of the IT Gov GRB step status
+ */
+export enum ITGovGRBStatus {
+  AWAITING_DECISION = "AWAITING_DECISION",
+  CANT_START = "CANT_START",
+  COMPLETED = "COMPLETED",
+  NOT_NEEDED = "NOT_NEEDED",
+  READY_TO_SCHEDULE = "READY_TO_SCHEDULE",
+  SCHEDULED = "SCHEDULED",
+}
+
+/**
+ * The requester view of the IT Gov GRT step status
+ */
+export enum ITGovGRTStatus {
+  AWAITING_DECISION = "AWAITING_DECISION",
+  CANT_START = "CANT_START",
+  COMPLETED = "COMPLETED",
+  NOT_NEEDED = "NOT_NEEDED",
+  READY_TO_SCHEDULE = "READY_TO_SCHEDULE",
+  SCHEDULED = "SCHEDULED",
+}
+
+/**
+ * The requester view of the IT gov intake step status
+ */
+export enum ITGovIntakeFormStatus {
+  COMPLETED = "COMPLETED",
+  EDITS_REQUESTED = "EDITS_REQUESTED",
+  IN_PROGRESS = "IN_PROGRESS",
+  READY = "READY",
+}
+
+/**
+ * PersonRole is an enumeration of values for a person's role
+ */
+export enum PersonRole {
+  CLOUD_NAVIGATOR = "CLOUD_NAVIGATOR",
+  CONTRACT_OFFICE_RSREPRESENTATIVE = "CONTRACT_OFFICE_RSREPRESENTATIVE",
+  CRA = "CRA",
+  OTHER = "OTHER",
+  PRIVACY_ADVISOR = "PRIVACY_ADVISOR",
+  PRODUCT_OWNER = "PRODUCT_OWNER",
+  SYSTEM_MAINTAINER = "SYSTEM_MAINTAINER",
+  SYSTEM_OWNER = "SYSTEM_OWNER",
+}
+
+/**
  * Indicates the type of a request being made with the EASi system
  */
 export enum RequestType {
@@ -96,6 +204,25 @@ export enum SystemIntakeActionType {
   SUBMIT_BIZ_CASE = "SUBMIT_BIZ_CASE",
   SUBMIT_FINAL_BIZ_CASE = "SUBMIT_FINAL_BIZ_CASE",
   SUBMIT_INTAKE = "SUBMIT_INTAKE",
+}
+
+/**
+ * Represents the common options for document type that is attached to a
+ * System Intake document
+ */
+export enum SystemIntakeDocumentCommonType {
+  DRAFT_ICGE = "DRAFT_ICGE",
+  OTHER = "OTHER",
+  SOO_SOW = "SOO_SOW",
+}
+
+/**
+ * Enumeration of the possible statuses of documents uploaded in the System Intake
+ */
+export enum SystemIntakeDocumentStatus {
+  AVAILABLE = "AVAILABLE",
+  PENDING = "PENDING",
+  UNAVAILABLE = "UNAVAILABLE",
 }
 
 /**
@@ -131,9 +258,175 @@ export enum SystemIntakeStatus {
   WITHDRAWN = "WITHDRAWN",
 }
 
-export enum TRBRequestStatus {
+/**
+ * Represents the category of a single TRB admin note
+ */
+export enum TRBAdminNoteCategory {
+  ADVICE_LETTER = "ADVICE_LETTER",
+  CONSULT_SESSION = "CONSULT_SESSION",
+  GENERAL_REQUEST = "GENERAL_REQUEST",
+  INITIAL_REQUEST_FORM = "INITIAL_REQUEST_FORM",
+  SUPPORTING_DOCUMENTS = "SUPPORTING_DOCUMENTS",
+}
+
+/**
+ * Represents the status of the TRB advice letter step
+ */
+export enum TRBAdviceLetterStatus {
+  CANNOT_START_YET = "CANNOT_START_YET",
+  COMPLETED = "COMPLETED",
+  IN_PROGRESS = "IN_PROGRESS",
+  READY_FOR_REVIEW = "READY_FOR_REVIEW",
+  READY_TO_START = "READY_TO_START",
+}
+
+/**
+ * Represents the status of the TRB advice letter step
+ */
+export enum TRBAdviceLetterStatusTaskList {
+  CANNOT_START_YET = "CANNOT_START_YET",
+  COMPLETED = "COMPLETED",
+  IN_REVIEW = "IN_REVIEW",
+}
+
+/**
+ * Represents the status of the TRB consult attendance step
+ */
+export enum TRBAttendConsultStatus {
+  CANNOT_START_YET = "CANNOT_START_YET",
+  COMPLETED = "COMPLETED",
+  READY_TO_SCHEDULE = "READY_TO_SCHEDULE",
+  SCHEDULED = "SCHEDULED",
+}
+
+/**
+ * Represents an option selected for collaboration groups in the TRB request form
+ */
+export enum TRBCollabGroupOption {
+  CLOUD = "CLOUD",
+  ENTERPRISE_ARCHITECTURE = "ENTERPRISE_ARCHITECTURE",
+  GOVERNANCE_REVIEW_BOARD = "GOVERNANCE_REVIEW_BOARD",
+  OTHER = "OTHER",
+  PRIVACY_ADVISOR = "PRIVACY_ADVISOR",
+  SECURITY = "SECURITY",
+}
+
+/**
+ * Represents the status of the TRB consult step
+ */
+export enum TRBConsultPrepStatus {
+  CANNOT_START_YET = "CANNOT_START_YET",
+  COMPLETED = "COMPLETED",
+  READY_TO_START = "READY_TO_START",
+}
+
+/**
+ * Represents the common options for document type that is attached to a
+ * 508/accessibility request
+ */
+export enum TRBDocumentCommonType {
+  ARCHITECTURE_DIAGRAM = "ARCHITECTURE_DIAGRAM",
+  BUSINESS_CASE = "BUSINESS_CASE",
+  OTHER = "OTHER",
+  PRESENTATION_SLIDE_DECK = "PRESENTATION_SLIDE_DECK",
+}
+
+/**
+ * Represents the action an admin is taking on a TRB request when leaving feedback
+ */
+export enum TRBFeedbackAction {
+  READY_FOR_CONSULT = "READY_FOR_CONSULT",
+  REQUEST_EDITS = "REQUEST_EDITS",
+}
+
+/**
+ * Represents the status of the TRB feedback step
+ */
+export enum TRBFeedbackStatus {
+  CANNOT_START_YET = "CANNOT_START_YET",
+  COMPLETED = "COMPLETED",
+  EDITS_REQUESTED = "EDITS_REQUESTED",
+  IN_REVIEW = "IN_REVIEW",
+  READY_TO_START = "READY_TO_START",
+}
+
+/**
+ * Represents the status of a TRB request form
+ */
+export enum TRBFormStatus {
+  COMPLETED = "COMPLETED",
+  IN_PROGRESS = "IN_PROGRESS",
+  READY_TO_START = "READY_TO_START",
+}
+
+/**
+ * Enumeration of the possible statuses of documents uploaded in the TRB workflow
+ */
+export enum TRBRequestDocumentStatus {
+  AVAILABLE = "AVAILABLE",
+  PENDING = "PENDING",
+  UNAVAILABLE = "UNAVAILABLE",
+}
+
+export enum TRBRequestState {
   CLOSED = "CLOSED",
   OPEN = "OPEN",
+}
+
+export enum TRBRequestStatus {
+  ADVICE_LETTER_IN_REVIEW = "ADVICE_LETTER_IN_REVIEW",
+  ADVICE_LETTER_SENT = "ADVICE_LETTER_SENT",
+  CONSULT_COMPLETE = "CONSULT_COMPLETE",
+  CONSULT_SCHEDULED = "CONSULT_SCHEDULED",
+  DRAFT_ADVICE_LETTER = "DRAFT_ADVICE_LETTER",
+  DRAFT_REQUEST_FORM = "DRAFT_REQUEST_FORM",
+  FOLLOW_UP_REQUESTED = "FOLLOW_UP_REQUESTED",
+  NEW = "NEW",
+  READY_FOR_CONSULT = "READY_FOR_CONSULT",
+  REQUEST_FORM_COMPLETE = "REQUEST_FORM_COMPLETE",
+}
+
+export enum TRBRequestType {
+  BRAINSTORM = "BRAINSTORM",
+  FOLLOWUP = "FOLLOWUP",
+  FORMAL_REVIEW = "FORMAL_REVIEW",
+  NEED_HELP = "NEED_HELP",
+  OTHER = "OTHER",
+}
+
+/**
+ * The possible options on the TRB "Subject Areas" page
+ */
+export enum TRBSubjectAreaOption {
+  ACCESSIBILITY_COMPLIANCE = "ACCESSIBILITY_COMPLIANCE",
+  ACCESS_CONTROL_AND_IDENTITY_MANAGEMENT = "ACCESS_CONTROL_AND_IDENTITY_MANAGEMENT",
+  ASSISTANCE_WITH_SYSTEM_CONCEPT_DEVELOPMENT = "ASSISTANCE_WITH_SYSTEM_CONCEPT_DEVELOPMENT",
+  BUSINESS_INTELLIGENCE = "BUSINESS_INTELLIGENCE",
+  CLOUD_MIGRATION = "CLOUD_MIGRATION",
+  CONTAINERS_AND_MICROSERVICES = "CONTAINERS_AND_MICROSERVICES",
+  DISASTER_RECOVERY = "DISASTER_RECOVERY",
+  EMAIL_INTEGRATION = "EMAIL_INTEGRATION",
+  ENTERPRISE_DATA_LAKE_INTEGRATION = "ENTERPRISE_DATA_LAKE_INTEGRATION",
+  FRAMEWORK_OR_TOOL_ALTERNATIVES = "FRAMEWORK_OR_TOOL_ALTERNATIVES",
+  OPEN_SOURCE_SOFTWARE = "OPEN_SOURCE_SOFTWARE",
+  PORTAL_INTEGRATION = "PORTAL_INTEGRATION",
+  SYSTEM_ARCHITECTURE_REVIEW = "SYSTEM_ARCHITECTURE_REVIEW",
+  SYSTEM_DISPOSITION_PLANNING = "SYSTEM_DISPOSITION_PLANNING",
+  TECHNICAL_REFERENCE_ARCHITECTURE = "TECHNICAL_REFERENCE_ARCHITECTURE",
+  WEB_BASED_UI_SERVICES = "WEB_BASED_UI_SERVICES",
+  WEB_SERVICES_AND_APIS = "WEB_SERVICES_AND_APIS",
+}
+
+/**
+ * Represents an option selected to the "where are you in the process?" TRB request form
+ */
+export enum TRBWhereInProcessOption {
+  CONTRACTING_WORK_HAS_STARTED = "CONTRACTING_WORK_HAS_STARTED",
+  DEVELOPMENT_HAS_RECENTLY_STARTED = "DEVELOPMENT_HAS_RECENTLY_STARTED",
+  DEVELOPMENT_IS_SIGNIFICANTLY_UNDERWAY = "DEVELOPMENT_IS_SIGNIFICANTLY_UNDERWAY",
+  I_HAVE_AN_IDEA_AND_WANT_TO_BRAINSTORM = "I_HAVE_AN_IDEA_AND_WANT_TO_BRAINSTORM",
+  OTHER = "OTHER",
+  THE_SYSTEM_IS_IN_OPERATION_AND_MAINTENANCE = "THE_SYSTEM_IS_IN_OPERATION_AND_MAINTENANCE",
 }
 
 /**
@@ -152,7 +445,6 @@ export interface AddGRTFeedbackInput {
   emailBody: string;
   feedback: string;
   intakeID: UUID;
-  shouldSendEmail: boolean;
   notificationRecipients?: EmailNotificationRecipients | null;
 }
 
@@ -162,8 +454,17 @@ export interface AddGRTFeedbackInput {
 export interface BasicActionInput {
   feedback: string;
   intakeId: UUID;
-  shouldSendEmail: boolean;
   notificationRecipients?: EmailNotificationRecipients | null;
+}
+
+/**
+ * The input needed to close a TRB request
+ */
+export interface CloseTRBRequestInput {
+  id: UUID;
+  reasonClosed: string;
+  copyTrbMailbox: boolean;
+  notifyEuaIds: string[];
 }
 
 /**
@@ -213,7 +514,6 @@ export interface CreateSystemIntakeActionExtendLifecycleIdInput {
   nextSteps?: string | null;
   scope: string;
   costBaseline?: string | null;
-  shouldSendEmail: boolean;
   notificationRecipients?: EmailNotificationRecipients | null;
 }
 
@@ -225,6 +525,16 @@ export interface CreateSystemIntakeContactInput {
   systemIntakeId: UUID;
   component: string;
   role: string;
+}
+
+/**
+ * The data needed to upload a System Intake document and attach it to a request with metadata
+ */
+export interface CreateSystemIntakeDocumentInput {
+  requestID: UUID;
+  fileData: Upload;
+  documentType: SystemIntakeDocumentCommonType;
+  otherTypeDescription?: string | null;
 }
 
 /**
@@ -242,6 +552,56 @@ export interface CreateSystemIntakeNoteInput {
   content: string;
   authorName: string;
   intakeId: UUID;
+}
+
+/**
+ * The data needed to create a TRB admin note
+ */
+export interface CreateTRBAdminNoteInput {
+  trbRequestId: UUID;
+  category: TRBAdminNoteCategory;
+  noteText: string;
+}
+
+/**
+ * The input required to add a recommendation & links to a TRB advice letter
+ */
+export interface CreateTRBAdviceLetterRecommendationInput {
+  trbRequestId: UUID;
+  title: string;
+  recommendation: string;
+  links: string[];
+}
+
+/**
+ * The data needed add a TRB request attendee to a TRB request
+ */
+export interface CreateTRBRequestAttendeeInput {
+  euaUserId: string;
+  trbRequestId: UUID;
+  component: string;
+  role: PersonRole;
+}
+
+/**
+ * The data needed to upload a TRB document and attach it to a request with metadata
+ */
+export interface CreateTRBRequestDocumentInput {
+  requestID: UUID;
+  fileData: Upload;
+  documentType: TRBDocumentCommonType;
+  otherTypeDescription?: string | null;
+}
+
+/**
+ * The data needed to add feedback to a TRB request
+ */
+export interface CreateTRBRequestFeedbackInput {
+  trbRequestId: UUID;
+  feedbackMessage: string;
+  copyTrbMailbox: boolean;
+  notifyEuaIds: string[];
+  action: TRBFeedbackAction;
 }
 
 /**
@@ -274,6 +634,11 @@ export interface DeleteAccessibilityRequestInput {
  */
 export interface DeleteSystemIntakeContactInput {
   id: UUID;
+}
+
+export interface DeleteTRBRequestFundingSourcesInput {
+  trbRequestId: UUID;
+  fundingNumber: string;
 }
 
 /**
@@ -310,7 +675,6 @@ export interface IssueLifecycleIdInput {
   nextSteps?: string | null;
   scope: string;
   costBaseline?: string | null;
-  shouldSendEmail: boolean;
   notificationRecipients?: EmailNotificationRecipients | null;
 }
 
@@ -322,8 +686,17 @@ export interface RejectIntakeInput {
   intakeId: UUID;
   nextSteps?: string | null;
   reason: string;
-  shouldSendEmail: boolean;
   notificationRecipients?: EmailNotificationRecipients | null;
+}
+
+/**
+ * The data needed to reopen a TRB request
+ */
+export interface ReopenTRBRequestInput {
+  trbRequestId: UUID;
+  reasonReopened: string;
+  copyTrbMailbox: boolean;
+  notifyEuaIds: string[];
 }
 
 /**
@@ -352,10 +725,33 @@ export interface SendReportAProblemEmailInput {
 }
 
 /**
+ * The data needed to send a TRB advice letter, including who to notify
+ */
+export interface SendTRBAdviceLetterInput {
+  id: UUID;
+  copyTrbMailbox: boolean;
+  notifyEuaIds: string[];
+}
+
+export interface SetRolesForUserOnSystemInput {
+  cedarSystemID: string;
+  euaUserId: string;
+  desiredRoleTypeIDs: string[];
+}
+
+/**
  * Input to submit an intake for review
  */
 export interface SubmitIntakeInput {
   id: UUID;
+}
+
+/**
+ * Input data for current and planned year one annual costs associated with a system request
+ */
+export interface SystemIntakeAnnualSpendingInput {
+  currentAnnualSpending?: string | null;
+  plannedYearOneSpending?: string | null;
 }
 
 /**
@@ -388,6 +784,8 @@ export interface SystemIntakeContractInput {
 
 /**
  * Input data for estimated system cost increases associated with a system request
+ * 
+ * NOTE: This field is no longer in intake form but data/query is preserved for existing intakes (EASI-2076) 
  */
 export interface SystemIntakeCostsInput {
   expectedIncreaseAmount?: string | null;
@@ -451,6 +849,17 @@ export interface SystemIntakeRequesterWithComponentInput {
 }
 
 /**
+ * TRBRequestChanges represents the possible changes you can make to a TRB request when updating it.
+ * Fields explicitly set with NULL will be unset, and omitted fields will be left unchanged.
+ * https: // gqlgen.com/reference/changesets/
+ */
+export interface TRBRequestChanges {
+  name?: string | null;
+  archived?: boolean | null;
+  type?: TRBRequestType | null;
+}
+
+/**
  * Parameters for updating a 508/accessibility request's associated CEDAR system
  */
 export interface UpdateAccessibilityRequestCedarSystemInput {
@@ -506,7 +915,17 @@ export interface UpdateSystemIntakeContractDetailsInput {
   id: UUID;
   fundingSources?: SystemIntakeFundingSourcesInput | null;
   costs?: SystemIntakeCostsInput | null;
+  annualSpending?: SystemIntakeAnnualSpendingInput | null;
   contract?: SystemIntakeContractInput | null;
+}
+
+/**
+ * Input data for updating an IT governance admin note
+ */
+export interface UpdateSystemIntakeNoteInput {
+  content: string;
+  isArchived: boolean;
+  id: UUID;
 }
 
 /**
@@ -520,6 +939,7 @@ export interface UpdateSystemIntakeRequestDetailsInput {
   needsEaSupport?: boolean | null;
   currentStage?: string | null;
   cedarSystemId?: string | null;
+  hasUiChanges?: boolean | null;
 }
 
 /**
@@ -529,6 +949,90 @@ export interface UpdateSystemIntakeReviewDatesInput {
   grbDate?: Time | null;
   grtDate?: Time | null;
   id: UUID;
+}
+
+/**
+ * The data needed to update a TRB advice letter
+ */
+export interface UpdateTRBAdviceLetterInput {
+  trbRequestId: UUID;
+  meetingSummary?: string | null;
+  nextSteps?: string | null;
+  isFollowupRecommended?: boolean | null;
+  followupPoint?: string | null;
+}
+
+/**
+ * The input required to update a recommendation to a TRB advice letter
+ */
+export interface UpdateTRBAdviceLetterRecommendationInput {
+  id: UUID;
+  title?: string | null;
+  recommendation?: string | null;
+  links?: string[] | null;
+}
+
+/**
+ * Represents an EUA user who is included as an attendee for a TRB request
+ */
+export interface UpdateTRBRequestAttendeeInput {
+  id: UUID;
+  component: string;
+  role: PersonRole;
+}
+
+/**
+ * The data needed schedule a TRB consult meeting time
+ */
+export interface UpdateTRBRequestConsultMeetingTimeInput {
+  trbRequestId: UUID;
+  consultMeetingTime: Time;
+  copyTrbMailbox: boolean;
+  notifyEuaIds: string[];
+  notes: string;
+}
+
+/**
+ * Represents an EUA user who is included as an form for a TRB request
+ */
+export interface UpdateTRBRequestFormInput {
+  trbRequestId: UUID;
+  isSubmitted?: boolean | null;
+  component?: string | null;
+  needsAssistanceWith?: string | null;
+  hasSolutionInMind?: boolean | null;
+  proposedSolution?: string | null;
+  whereInProcess?: TRBWhereInProcessOption | null;
+  whereInProcessOther?: string | null;
+  hasExpectedStartEndDates?: boolean | null;
+  expectedStartDate?: Time | null;
+  expectedEndDate?: Time | null;
+  collabGroups?: TRBCollabGroupOption[] | null;
+  collabDateSecurity?: string | null;
+  collabDateEnterpriseArchitecture?: string | null;
+  collabDateCloud?: string | null;
+  collabDatePrivacyAdvisor?: string | null;
+  collabDateGovernanceReviewBoard?: string | null;
+  collabDateOther?: string | null;
+  collabGroupOther?: string | null;
+  collabGRBConsultRequested?: boolean | null;
+  systemIntakes?: UUID[] | null;
+  subjectAreaOptions?: TRBSubjectAreaOption[] | null;
+  subjectAreaOptionOther?: string | null;
+}
+
+export interface UpdateTRBRequestFundingSourcesInput {
+  trbRequestId: UUID;
+  fundingNumber: string;
+  sources: string[];
+}
+
+/**
+ * The data needed assign a TRB lead to a TRB request
+ */
+export interface UpdateTRBRequestTRBLeadInput {
+  trbRequestId: UUID;
+  trbLead: string;
 }
 
 /**

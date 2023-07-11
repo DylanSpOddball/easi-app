@@ -33,9 +33,9 @@ describe('The system intake data modifiers', () => {
         businessSolution: '',
         currentStage: '',
         needsEaSupport: null,
-        costs: {
-          isExpectingIncrease: '',
-          expectedIncreaseAmount: ''
+        annualSpending: {
+          currentAnnualSpending: '',
+          plannedYearOneSpending: ''
         },
         contract: {
           hasContract: '',
@@ -52,7 +52,8 @@ describe('The system intake data modifiers', () => {
         archivedAt: null,
         adminLead: '',
         lastAdminNote: null,
-        lcidScope: ''
+        lcidScope: '',
+        hasUiChanges: null
       });
     });
 
@@ -61,12 +62,7 @@ describe('The system intake data modifiers', () => {
         ...initialSystemIntakeForm,
         id: 'addaa218-34d3-4dd8-a12f-38f6ff33b22d',
         euaUserId: 'ABCD',
-        submittedAt: DateTime.fromObject({
-          year: 2020,
-          month: 6,
-          day: 26,
-          zone: 'America/Los_Angeles'
-        }),
+        submittedAt: '2020-06-26T20:22:04Z',
         requestName: 'Easy Access to System Information',
         requester: {
           name: 'Christopher Hui',
@@ -107,11 +103,12 @@ describe('The system intake data modifiers', () => {
         },
         existingFunding: true,
         fundingSources: [{ fundingNumber: '123456', source: 'CLIA' }],
-        costs: {
-          isExpectingIncrease: 'YES',
-          expectedIncreaseAmount: 'One million'
+        annualSpending: {
+          currentAnnualSpending: 'Test Current Annual Spending',
+          plannedYearOneSpending: 'Test Planned Year One Spending'
         },
         contract: {
+          number: '',
           hasContract: 'IN_PROGRESS',
           contractor: 'TrussWorks, Inc.',
           vehicle: 'Fixed price contract',
@@ -131,41 +128,25 @@ describe('The system intake data modifiers', () => {
         currentStage: 'Test current stage',
         needsEaSupport: true,
         status: 'Submitted',
-        decidedAt: DateTime.fromObject({
-          year: 2020,
-          month: 6,
-          day: 27,
-          zone: 'America/Los_Angeles'
-        }),
-        createdAt: DateTime.fromObject({
-          year: 2020,
-          month: 6,
-          day: 22,
-          zone: 'America/Los_Angeles'
-        }),
-        updatedAt: DateTime.fromObject({
-          year: 2020,
-          month: 6,
-          day: 23,
-          zone: 'America/Los_Angeles'
-        }),
-        archivedAt: DateTime.fromObject({
-          year: 2020,
-          month: 6,
-          day: 28,
-          zone: 'America/Los_Angeles'
-        }),
+        decidedAt: '2020-06-27T20:22:04Z',
+        createdAt: '2020-06-22T20:22:04Z',
+        updatedAt: '2020-06-23T20:22:04Z',
+        archivedAt: '2020-06-28T20:22:04Z',
         adminLead: 'Test Admin Lead',
         lastAdminNote: {
           content: 'last admin note',
-          createdAt: DateTime.fromObject({
-            year: 2020,
-            month: 6,
-            day: 22,
-            zone: 'America/Los_Angeles'
-          })
+          createdAt: DateTime.fromObject(
+            {
+              year: 2020,
+              month: 6,
+              day: 22
+            },
+            { zone: 'America/Los_Angeles' }
+          ).toISO()
         },
-        lcidScope: ''
+        lcidScope: '',
+        requesterNameAndComponent: '',
+        hasUiChanges: true
       };
 
       expect(convertIntakeToCSV(mockIntake)).toMatchObject({
@@ -196,9 +177,9 @@ describe('The system intake data modifiers', () => {
             fundingNumber: '123456'
           }
         ],
-        costs: {
-          isExpectingIncrease: 'YES',
-          expectedIncreaseAmount: 'One million'
+        annualSpending: {
+          currentAnnualSpending: 'Test Current Annual Spending',
+          plannedYearOneSpending: 'Test Planned Year One Spending'
         },
         contract: {
           hasContract: 'IN_PROGRESS',
@@ -212,14 +193,15 @@ describe('The system intake data modifiers', () => {
         currentStage: 'Test current stage',
         needsEaSupport: true,
         status: 'Submitted',
-        submittedAt: '2020-06-26T00:00:00.000-07:00',
-        decidedAt: '2020-06-27T00:00:00.000-07:00',
-        createdAt: '2020-06-22T00:00:00.000-07:00',
-        updatedAt: '2020-06-23T00:00:00.000-07:00',
-        archivedAt: '2020-06-28T00:00:00.000-07:00',
+        submittedAt: '2020-06-26T20:22:04Z',
+        decidedAt: '2020-06-27T20:22:04Z',
+        createdAt: '2020-06-22T20:22:04Z',
+        updatedAt: '2020-06-23T20:22:04Z',
+        archivedAt: '2020-06-28T20:22:04Z',
         adminLead: 'Test Admin Lead',
-        lastAdminNote: 'last admin note (June 22 2020)',
-        lcidScope: ''
+        lastAdminNote: 'last admin note (June 22, 2020)',
+        lcidScope: '',
+        hasUiChanges: true
       });
     });
   });

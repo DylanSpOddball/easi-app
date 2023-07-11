@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useHistory, useParams } from 'react-router-dom';
-import { ApolloQueryResult, useMutation } from '@apollo/client';
+import { ApolloError, ApolloQueryResult, useMutation } from '@apollo/client';
 import { Button } from '@trussworks/react-uswds';
-import { Field, Form, Formik, FormikProps } from 'formik';
+import { Field, Form, Formik, FormikHelpers, FormikProps } from 'formik';
 import { DateTime } from 'luxon';
 
 import MandatoryFieldsAlert from 'components/MandatoryFieldsAlert';
@@ -19,23 +19,23 @@ import FieldGroup from 'components/shared/FieldGroup';
 import HelpText from 'components/shared/HelpText';
 import Label from 'components/shared/Label';
 import TextAreaField from 'components/shared/TextAreaField';
-import useSystemIntake from 'hooks/useSystemIntake';
+import useSystemIntakeContacts from 'hooks/useSystemIntakeContacts';
 import CreateSystemIntakeActionExtendLifecycleIdQuery from 'queries/CreateSystemIntakeActionExtendLifecycleIdQuery';
 import {
   CreateSystemIntakeActionExtendLifecycleId,
   CreateSystemIntakeActionExtendLifecycleIdVariables
 } from 'queries/types/CreateSystemIntakeActionExtendLifecycleId';
 import { GetSystemIntake } from 'queries/types/GetSystemIntake';
-import { EmailNotificationRecipients } from 'types/graphql-global-types';
+import { ActionForm } from 'types/action';
 import { SystemIntakeContactProps } from 'types/systemIntake';
-import { formatDateAndIgnoreTimezone } from 'utils/date';
+import { formatDateUtc } from 'utils/date';
 import flattenErrors from 'utils/flattenErrors';
 import { sharedLifecycleIdSchema } from 'validations/actionSchema';
 
 import CompleteWithoutEmailButton from './CompleteWithoutEmailButton';
 import EmailRecipientsFields from './EmailRecipientsFields';
 
-type ExtendLCIDForm = {
+interface ExtendLCIDForm extends ActionForm {
   currentCostBaseline: string;
   currentExpiresAt: string;
   currentNextSteps: string;
@@ -46,9 +46,7 @@ type ExtendLCIDForm = {
   newCostBaseline: string;
   nextSteps: string;
   scope: string;
-  feedback: string;
-  notificationRecipients: EmailNotificationRecipients;
-};
+}
 
 type ExtendLifecycleIdProps = {
   lcid: string;
@@ -71,8 +69,21 @@ const ExtendLifecycleId = ({
 }: ExtendLifecycleIdProps) => {
   const { t } = useTranslation('action');
   const { systemId } = useParams<{ systemId: string }>();
-  const { systemIntake } = useSystemIntake(systemId);
   const history = useHistory();
+
+  // System intake contacts
+  const { contacts } = useSystemIntakeContacts(systemId);
+  const { requester } = contacts.data;
+
+  /** Whether contacts have loaded for the first time */
+  const [contactsLoaded, setContactsLoaded] = useState(false);
+
+  // Active contact for adding/verifying recipients
+  const [
+    activeContact,
+    setActiveContact
+  ] = useState<SystemIntakeContactProps | null>(null);
+
   const initialValues: ExtendLCIDForm = {
     currentExpiresAt: lcidExpiresAt,
     expirationDateDay: '',
@@ -86,10 +97,11 @@ const ExtendLifecycleId = ({
     newCostBaseline: '',
     feedback: '',
     notificationRecipients: {
-      regularRecipientEmails: [systemIntake?.requester?.email!].filter(e => e),
+      regularRecipientEmails: [requester.email].filter(e => e), // Filter out null emails
       shouldNotifyITGovernance: true,
       shouldNotifyITInvestment: true
-    }
+    },
+    shouldSendEmail: true
   };
 
   const [extendLifecycleID, extendLifecycleIDStatus] = useMutation<
@@ -97,14 +109,10 @@ const ExtendLifecycleId = ({
     CreateSystemIntakeActionExtendLifecycleIdVariables
   >(CreateSystemIntakeActionExtendLifecycleIdQuery);
 
-  const [shouldSendEmail, setShouldSendEmail] = useState<boolean>(true);
-
-  const [
-    activeContact,
-    setActiveContact
-  ] = useState<SystemIntakeContactProps | null>(null);
-
-  const handleSubmit = (values: ExtendLCIDForm) => {
+  const handleSubmit = (
+    values: ExtendLCIDForm,
+    { setFieldError }: FormikHelpers<ExtendLCIDForm>
+  ) => {
     const {
       expirationDateMonth = '',
       expirationDateDay = '',
@@ -112,32 +120,56 @@ const ExtendLifecycleId = ({
       scope = '',
       nextSteps = '',
       newCostBaseline = '',
-      notificationRecipients
+      notificationRecipients,
+      shouldSendEmail
     } = values;
+
+    // Get expiration date
     const expiresAt = DateTime.utc(
       parseInt(expirationDateYear, RADIX),
       parseInt(expirationDateMonth, RADIX),
       parseInt(expirationDateDay, RADIX)
     ).toISO();
+
+    const variables: CreateSystemIntakeActionExtendLifecycleIdVariables = {
+      input: {
+        id: systemId,
+        expirationDate: expiresAt,
+        scope,
+        nextSteps,
+        costBaseline: newCostBaseline
+      }
+    };
+
+    if (shouldSendEmail) {
+      variables.input.notificationRecipients = notificationRecipients;
+    }
+
+    // GQL mutation to extend lifecycle ID
     extendLifecycleID({
-      variables: {
-        input: {
-          id: systemId,
-          expirationDate: expiresAt,
-          scope,
-          nextSteps,
-          costBaseline: newCostBaseline,
-          shouldSendEmail,
-          notificationRecipients
+      variables
+    })
+      .then(({ errors }) => {
+        if (!errors) {
+          // If no errors, view intake action notes
+          history.push(`/governance-review-team/${systemId}/notes`);
+          onSubmit();
         }
-      }
-    }).then(response => {
-      if (!response.errors) {
-        history.push(`/governance-review-team/${systemId}/notes`);
-        onSubmit();
-      }
-    });
+      })
+      // Set Formik error to display alert
+      .catch((e: ApolloError) => setFieldError('systemIntake', e.message));
   };
+
+  // Sets contactsLoaded to true when GetSystemIntakeContactsQuery loading state changes
+  useEffect(() => {
+    if (!contacts.loading) {
+      setContactsLoaded(true);
+    }
+  }, [contacts.loading]);
+
+  // Returns null until GetSystemIntakeContactsQuery has completed
+  // Allows initial values to fully load before initializing form
+  if (!contactsLoaded) return null;
 
   return (
     <Formik
@@ -147,6 +179,7 @@ const ExtendLifecycleId = ({
       validateOnBlur={false}
       validateOnChange={false}
       validateOnMount={false}
+      enableReinitialize
     >
       {(formikProps: FormikProps<ExtendLCIDForm>) => {
         const {
@@ -178,7 +211,10 @@ const ExtendLifecycleId = ({
               </ErrorAlert>
             )}
 
-            <PageHeading className="margin-top-0 margin-bottom-3">
+            <PageHeading
+              data-testid="extend-lcid"
+              className="margin-top-0 margin-bottom-3"
+            >
               {t('extendLcid.heading')}
             </PageHeading>
             <h3 className="margin-top-3 margin-bottom-2">
@@ -187,7 +223,7 @@ const ExtendLifecycleId = ({
             <div className="margin-bottom-05 text-bold line-height-body-2">
               {t('extendLcid.selectedAction')}
             </div>
-            <div>
+            <div data-testid="grtSelectedAction">
               {t('extendLcid.action')}{' '}
               <Link to={`/governance-review-team/${systemId}/actions`}>
                 {t('extendLcid.back')}
@@ -206,7 +242,7 @@ const ExtendLifecycleId = ({
                   {t('extendLcid.currentLcidExpiration')}
                 </dt>
                 <dd className="margin-left-0 margin-bottom-2 line-height-body-5">
-                  {formatDateAndIgnoreTimezone(lcidExpiresAt)}
+                  {formatDateUtc(lcidExpiresAt, 'MMMM d, yyyy')}
                 </dd>
                 <dt className="text-bold">{t('extendLcid.currentScope')}</dt>
                 <dd className="margin-left-0 margin-bottom-2 line-height-body-5">
@@ -372,6 +408,7 @@ const ExtendLifecycleId = ({
                   systemIntakeId={systemId}
                   activeContact={activeContact}
                   setActiveContact={setActiveContact}
+                  contacts={contacts.data}
                   recipients={values.notificationRecipients}
                   setRecipients={recipients =>
                     setFieldValue('notificationRecipients', recipients)
@@ -389,7 +426,7 @@ const ExtendLifecycleId = ({
                     type="submit"
                     onClick={() => {
                       setErrors({});
-                      setShouldSendEmail(true);
+                      setFieldValue('shouldSendEmail', true);
                     }}
                     disabled={
                       extendLifecycleIDStatus.loading || !!activeContact
@@ -400,11 +437,9 @@ const ExtendLifecycleId = ({
                 </div>
                 <div>
                   <CompleteWithoutEmailButton
-                    onClick={() => {
-                      setErrors({});
-                      setShouldSendEmail(false);
-                      setTimeout(submitForm);
-                    }}
+                    setErrors={setErrors}
+                    setFieldValue={setFieldValue}
+                    submitForm={submitForm}
                     disabled={!!activeContact}
                   />
                 </div>

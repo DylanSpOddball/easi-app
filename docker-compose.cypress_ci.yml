@@ -15,6 +15,11 @@ services:
       - PGPASS=mysecretpassword
       - PGSSLMODE=disable
       - DB_MAX_CONNECTIONS=20
+      - AWS_REGION=us-west-2
+      - AWS_S3_FILE_UPLOAD_BUCKET=easi-app-file-uploads
+      - MINIO_ADDRESS=http://minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
   easi:
     image: '${ECR_REGISTRY}/easi-backend:${GIT_HASH}'
     environment:
@@ -23,8 +28,10 @@ services:
       - SERVER_CERT
       - SERVER_KEY
       - LOCAL_AUTH_ENABLED=true
+      - CEDAR_EMAIL_ADDRESS=fake@cedar.gov
       - FLAG_SOURCE=FILE
       - FLAGDATA_FILE=/cypress/fixtures/flagdata.json
+      - MINIO_ADDRESS=http://minio:9000
     volumes:
       - ./cypress:/cypress # Mounted so that the backend container can access the file with LaunchDarkly flag values
   easi_client:
@@ -44,10 +51,9 @@ services:
       - OKTA_TEST_PASSWORD
       - OKTA_TEST_SECRET
       - REACT_APP_API_ADDRESS=http://easi:8080/api/v1
-      - REACT_APP_GRAPHQL_ADDRESS=http://easi:8080/api/graph/query
+      - MINIO_ADDRESS=minio
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
-      - MINIO_HOST=minio:9000
       - PGHOST=db
       - PGPORT=5432
       - PGDATABASE=postgres
@@ -55,8 +61,8 @@ services:
       - PGPASS=mysecretpassword
       - PGSSLMODE=disable
       - DB_MAX_CONNECTIONS=20
-      - CYPRESS_MAILCATCHER_API_ADDRESS=http://email:1080
-      - CYPRESS_GRT_EMAIL=success@simulator.amazonses.com # should be the same value as GRT_EMAIL in docker-compose.yml
     network_mode: 'service:easi_client'
     depends_on:
       - easi_client
+    volumes:
+      - ./minio_config.json:/root/.mc/config.json

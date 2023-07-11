@@ -1,3 +1,6 @@
+@use 'uswds-core' as *;
+@forward "usa-list";
+
 // Custom USWDS Button
 .easi-button {
   &__save {
@@ -7,6 +10,60 @@
       background-color: color('error-light');
       color: color('black');
     }
+  }
+}
+
+// Definition List
+.easi-dl {
+  margin-top: 0;
+  margin-bottom: 0;
+  dt  {
+    font-weight: bold;
+    font-size: size('body', 4);
+    line-height: line-height('body', 6);
+  }
+  dd {
+    margin-left: 0;
+    margin-bottom: 1.5rem;
+    font-size: size('body', 5);
+    line-height: line-height('body', 6);
+  }
+}
+
+// Table Horizontal Bleed
+.easi-table--bleed-x {
+  .usa-table {
+    thead tr {
+      th:first-of-type {
+        padding-left: 0;
+      }
+      th:last-of-type {
+        padding-right: 0;
+      }
+    }
+    tbody tr {
+      td:first-of-type {
+        padding-left: 0;
+      }
+      td:last-of-type {
+        padding-right: 0;
+      }
+    }
+  }
+}
+
+.easi-table--bottomless .usa-table tbody tr:last-of-type td {
+  border-bottom: 0 !important;
+}
+
+// List with some more reset-like defaults
+.easi-list {
+  @extend .usa-list;
+  margin-top: 0;
+  margin-bottom: 0;
+  li {
+    max-width: none;
+    margin-bottom: 0;
   }
 }
 
@@ -36,23 +93,41 @@
   z-index: 300;
 }
 
-.usa-alert.easi-inline-alert {
-  background-color: color('white');
-  background-size: 1.6rem;
-  background-position: 0.5rem 0.5rem;
-  padding: 0;
-  &::before {
-    width: 0.2rem;
-    background: color('base-dark');
+.usa-alert {
+  .easi-inline-alert {
+    background-color: color('white');
+    background-size: 1.6rem;
+    background-position: 0.5rem 0.5rem;
+    padding: 0;
+    &::before {
+      width: 0.2rem;
+      background: color('base-dark');
+    }
+    .usa-alert__body {
+      padding-left: 2.8rem;
+    }
+    .usa-alert__text:only-child {
+      margin-bottom: 0;
+    }
   }
-  .usa-alert__body {
-    padding-left: 2.8rem;
-  }
-  .usa-alert__text:only-child {
-    margin-bottom: 0;
+  // Remove max width on alert body
+  &.usa-alert .usa-alert__body {
+    max-width: none;
   }
 }
 
 .bg-transparent {
   background-color: transparent;
+}
+
+.sticky {
+  align-self: start;
+  position: sticky;
+  position: -webkit-sticky;
+  top: -1px;
+}
+
+// Fixes button group item margins when nested inside .usa-list
+.usa-list li.usa-button-group__item:last-child {
+  margin-bottom: 0.25rem;
 }

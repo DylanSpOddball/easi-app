@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/cmsgov/easi-app/pkg/models"
 	"github.com/google/uuid"
 )
@@ -33,7 +34,6 @@ type AddGRTFeedbackInput struct {
 	EmailBody              string                              `json:"emailBody"`
 	Feedback               string                              `json:"feedback"`
 	IntakeID               uuid.UUID                           `json:"intakeID"`
-	ShouldSendEmail        bool                                `json:"shouldSendEmail"`
 	NotificationRecipients *models.EmailNotificationRecipients `json:"notificationRecipients"`
 }
 
@@ -47,7 +47,6 @@ type AddGRTFeedbackPayload struct {
 type BasicActionInput struct {
 	Feedback               string                              `json:"feedback"`
 	IntakeID               uuid.UUID                           `json:"intakeId"`
-	ShouldSendEmail        bool                                `json:"shouldSendEmail"`
 	NotificationRecipients *models.EmailNotificationRecipients `json:"notificationRecipients"`
 }
 
@@ -110,6 +109,14 @@ type CedarSystemMaintainerInformation struct {
 	TestReportsOnDemand        *bool    `json:"testReportsOnDemand"`
 	TestScriptsOnDemand        *bool    `json:"testScriptsOnDemand"`
 	YearToRetireReplace        *string  `json:"yearToRetireReplace"`
+}
+
+// The input needed to close a TRB request
+type CloseTRBRequestInput struct {
+	ID             uuid.UUID `json:"id"`
+	ReasonClosed   string    `json:"reasonClosed"`
+	CopyTrbMailbox bool      `json:"copyTrbMailbox"`
+	NotifyEuaIds   []string  `json:"notifyEuaIds"`
 }
 
 // Represents a date used for start and end dates on a contract
@@ -180,7 +187,6 @@ type CreateSystemIntakeActionExtendLifecycleIDInput struct {
 	NextSteps              *string                             `json:"nextSteps"`
 	Scope                  string                              `json:"scope"`
 	CostBaseline           *string                             `json:"costBaseline"`
-	ShouldSendEmail        bool                                `json:"shouldSendEmail"`
 	NotificationRecipients *models.EmailNotificationRecipients `json:"notificationRecipients"`
 }
 
@@ -203,6 +209,19 @@ type CreateSystemIntakeContactPayload struct {
 	SystemIntakeContact *models.SystemIntakeContact `json:"systemIntakeContact"`
 }
 
+// The data needed to upload a System Intake document and attach it to a request with metadata
+type CreateSystemIntakeDocumentInput struct {
+	RequestID            uuid.UUID                             `json:"requestID"`
+	FileData             graphql.Upload                        `json:"fileData"`
+	DocumentType         models.SystemIntakeDocumentCommonType `json:"documentType"`
+	OtherTypeDescription *string                               `json:"otherTypeDescription"`
+}
+
+// Data returned after uploading a document to a System Intake
+type CreateSystemIntakeDocumentPayload struct {
+	Document *models.SystemIntakeDocument `json:"document"`
+}
+
 // The input data used to initialize an IT governance request for a system
 type CreateSystemIntakeInput struct {
 	RequestType models.SystemIntakeRequestType `json:"requestType"`
@@ -216,12 +235,49 @@ type CreateSystemIntakeNoteInput struct {
 	IntakeID   uuid.UUID `json:"intakeId"`
 }
 
+// The data needed to create a TRB admin note
+type CreateTRBAdminNoteInput struct {
+	TrbRequestID uuid.UUID                   `json:"trbRequestId"`
+	Category     models.TRBAdminNoteCategory `json:"category"`
+	NoteText     string                      `json:"noteText"`
+}
+
+// The input required to add a recommendation & links to a TRB advice letter
+type CreateTRBAdviceLetterRecommendationInput struct {
+	TrbRequestID   uuid.UUID `json:"trbRequestId"`
+	Title          string    `json:"title"`
+	Recommendation string    `json:"recommendation"`
+	Links          []string  `json:"links"`
+}
+
 // The data needed add a TRB request attendee to a TRB request
 type CreateTRBRequestAttendeeInput struct {
 	EuaUserID    string            `json:"euaUserId"`
 	TrbRequestID uuid.UUID         `json:"trbRequestId"`
 	Component    string            `json:"component"`
 	Role         models.PersonRole `json:"role"`
+}
+
+// The data needed to upload a TRB document and attach it to a request with metadata
+type CreateTRBRequestDocumentInput struct {
+	RequestID            uuid.UUID                    `json:"requestID"`
+	FileData             graphql.Upload               `json:"fileData"`
+	DocumentType         models.TRBDocumentCommonType `json:"documentType"`
+	OtherTypeDescription *string                      `json:"otherTypeDescription"`
+}
+
+// Data returned after uploading a document to a TRB request
+type CreateTRBRequestDocumentPayload struct {
+	Document *models.TRBRequestDocument `json:"document"`
+}
+
+// The data needed to add feedback to a TRB request
+type CreateTRBRequestFeedbackInput struct {
+	TrbRequestID    uuid.UUID                `json:"trbRequestId"`
+	FeedbackMessage string                   `json:"feedbackMessage"`
+	CopyTrbMailbox  bool                     `json:"copyTrbMailbox"`
+	NotifyEuaIds    []string                 `json:"notifyEuaIds"`
+	Action          models.TRBFeedbackAction `json:"action"`
 }
 
 // The input required to add a test date/score to a 508/accessibility request
@@ -281,6 +337,21 @@ type DeleteSystemIntakeContactPayload struct {
 	SystemIntakeContact *models.SystemIntakeContact `json:"systemIntakeContact"`
 }
 
+// Data returned after deleting a document attached to a System Intake
+type DeleteSystemIntakeDocumentPayload struct {
+	Document *models.SystemIntakeDocument `json:"document"`
+}
+
+// Data returned after deleting a document attached to a TRB request
+type DeleteTRBRequestDocumentPayload struct {
+	Document *models.TRBRequestDocument `json:"document"`
+}
+
+type DeleteTRBRequestFundingSourcesInput struct {
+	TrbRequestID  uuid.UUID `json:"trbRequestId"`
+	FundingNumber string    `json:"fundingNumber"`
+}
+
 // The input required to delete a test date/score
 type DeleteTestDateInput struct {
 	ID uuid.UUID `json:"id"`
@@ -315,7 +386,6 @@ type IssueLifecycleIDInput struct {
 	NextSteps              *string                             `json:"nextSteps"`
 	Scope                  string                              `json:"scope"`
 	CostBaseline           *string                             `json:"costBaseline"`
-	ShouldSendEmail        bool                                `json:"shouldSendEmail"`
 	NotificationRecipients *models.EmailNotificationRecipients `json:"notificationRecipients"`
 }
 
@@ -337,8 +407,15 @@ type RejectIntakeInput struct {
 	IntakeID               uuid.UUID                           `json:"intakeId"`
 	NextSteps              *string                             `json:"nextSteps"`
 	Reason                 string                              `json:"reason"`
-	ShouldSendEmail        bool                                `json:"shouldSendEmail"`
 	NotificationRecipients *models.EmailNotificationRecipients `json:"notificationRecipients"`
+}
+
+// The data needed to reopen a TRB request
+type ReopenTRBRequestInput struct {
+	TrbRequestID   uuid.UUID `json:"trbRequestId"`
+	ReasonReopened string    `json:"reasonReopened"`
+	CopyTrbMailbox bool      `json:"copyTrbMailbox"`
+	NotifyEuaIds   []string  `json:"notifyEuaIds"`
 }
 
 // Represents a request being made with the EASi system
@@ -388,6 +465,19 @@ type SendReportAProblemEmailInput struct {
 	HowSevereWasTheProblem string `json:"howSevereWasTheProblem"`
 }
 
+// The data needed to send a TRB advice letter, including who to notify
+type SendTRBAdviceLetterInput struct {
+	ID             uuid.UUID `json:"id"`
+	CopyTrbMailbox bool      `json:"copyTrbMailbox"`
+	NotifyEuaIds   []string  `json:"notifyEuaIds"`
+}
+
+type SetRolesForUserOnSystemInput struct {
+	CedarSystemID      string   `json:"cedarSystemID"`
+	EuaUserID          string   `json:"euaUserId"`
+	DesiredRoleTypeIDs []string `json:"desiredRoleTypeIDs"`
+}
+
 // Input to submit an intake for review
 type SubmitIntakeInput struct {
 	ID uuid.UUID `json:"id"`
@@ -416,6 +506,18 @@ type SystemIntakeAction struct {
 type SystemIntakeActionActor struct {
 	Name  string `json:"name"`
 	Email string `json:"email"`
+}
+
+// Represents current and planned annual costs for a system
+type SystemIntakeAnnualSpending struct {
+	CurrentAnnualSpending  *string `json:"currentAnnualSpending"`
+	PlannedYearOneSpending *string `json:"plannedYearOneSpending"`
+}
+
+// Input data for current and planned year one annual costs associated with a system request
+type SystemIntakeAnnualSpendingInput struct {
+	CurrentAnnualSpending  *string `json:"currentAnnualSpending"`
+	PlannedYearOneSpending *string `json:"plannedYearOneSpending"`
 }
 
 // Represents the OIT business owner of a system
@@ -479,9 +581,18 @@ type SystemIntakeCosts struct {
 }
 
 // Input data for estimated system cost increases associated with a system request
+//
+// NOTE: This field is no longer in intake form but data/query is preserved for existing intakes (EASI-2076)
 type SystemIntakeCostsInput struct {
 	ExpectedIncreaseAmount *string `json:"expectedIncreaseAmount"`
 	IsExpectingIncrease    *string `json:"isExpectingIncrease"`
+}
+
+// Denotes the type of a document attached to a System Intake,
+// which can be one of a number of common types, or a free-text user-specified type
+type SystemIntakeDocumentType struct {
+	CommonType           models.SystemIntakeDocumentCommonType `json:"commonType"`
+	OtherTypeDescription *string                               `json:"otherTypeDescription"`
 }
 
 // Represents the source of funding for a system
@@ -534,14 +645,6 @@ type SystemIntakeLCIDExpirationChange struct {
 	NewCostBaseline      *string   `json:"newCostBaseline"`
 }
 
-// A note added to a system request
-type SystemIntakeNote struct {
-	Author    *SystemIntakeNoteAuthor `json:"author"`
-	Content   string                  `json:"content"`
-	CreatedAt time.Time               `json:"createdAt"`
-	ID        uuid.UUID               `json:"id"`
-}
-
 // The author of a note added to a system request
 type SystemIntakeNoteAuthor struct {
 	Eua  string `json:"eua"`
@@ -577,6 +680,13 @@ type SystemIntakeRequesterInput struct {
 type SystemIntakeRequesterWithComponentInput struct {
 	Name      string `json:"name"`
 	Component string `json:"component"`
+}
+
+// Denotes the type of a document attached to a TRB request,
+// which can be one of a number of common types, or a free-text user-specified type
+type TRBRequestDocumentType struct {
+	CommonType           models.TRBDocumentCommonType `json:"commonType"`
+	OtherTypeDescription *string                      `json:"otherTypeDescription"`
 }
 
 // Parameters for updating a 508/accessibility request's associated CEDAR system
@@ -638,6 +748,7 @@ type UpdateSystemIntakeContractDetailsInput struct {
 	ID             uuid.UUID                        `json:"id"`
 	FundingSources *SystemIntakeFundingSourcesInput `json:"fundingSources"`
 	Costs          *SystemIntakeCostsInput          `json:"costs"`
+	AnnualSpending *SystemIntakeAnnualSpendingInput `json:"annualSpending"`
 	Contract       *SystemIntakeContractInput       `json:"contract"`
 }
 
@@ -651,6 +762,13 @@ type UpdateSystemIntakeLinkedCedarSystemInput struct {
 type UpdateSystemIntakeLinkedContractInput struct {
 	ID             uuid.UUID `json:"id"`
 	ContractNumber *string   `json:"contractNumber"`
+}
+
+// Input data for updating an IT governance admin note
+type UpdateSystemIntakeNoteInput struct {
+	Content    string    `json:"content"`
+	IsArchived bool      `json:"isArchived"`
+	ID         uuid.UUID `json:"id"`
 }
 
 // The payload for updating a system's IT governance request
@@ -668,6 +786,7 @@ type UpdateSystemIntakeRequestDetailsInput struct {
 	NeedsEaSupport   *bool     `json:"needsEaSupport"`
 	CurrentStage     *string   `json:"currentStage"`
 	CedarSystemID    *string   `json:"cedarSystemId"`
+	HasUIChanges     *bool     `json:"hasUiChanges"`
 }
 
 // Input data used to update GRT and GRB dates for a system request
@@ -682,6 +801,27 @@ type UpdateTRBRequestAttendeeInput struct {
 	ID        uuid.UUID         `json:"id"`
 	Component string            `json:"component"`
 	Role      models.PersonRole `json:"role"`
+}
+
+// The data needed schedule a TRB consult meeting time
+type UpdateTRBRequestConsultMeetingTimeInput struct {
+	TrbRequestID       uuid.UUID `json:"trbRequestId"`
+	ConsultMeetingTime time.Time `json:"consultMeetingTime"`
+	CopyTrbMailbox     bool      `json:"copyTrbMailbox"`
+	NotifyEuaIds       []string  `json:"notifyEuaIds"`
+	Notes              string    `json:"notes"`
+}
+
+type UpdateTRBRequestFundingSourcesInput struct {
+	TrbRequestID  uuid.UUID `json:"trbRequestId"`
+	FundingNumber string    `json:"fundingNumber"`
+	Sources       []string  `json:"sources"`
+}
+
+// The data needed assign a TRB lead to a TRB request
+type UpdateTRBRequestTRBLeadInput struct {
+	TrbRequestID uuid.UUID `json:"trbRequestId"`
+	TrbLead      string    `json:"trbLead"`
 }
 
 // The input required to update a test date/score
@@ -759,6 +899,8 @@ const (
 	RoleEasi508TesterOrUser Role = "EASI_508_TESTER_OR_USER"
 	// A member of the GRT
 	RoleEasiGovteam Role = "EASI_GOVTEAM"
+	// An admin on the TRB
+	RoleEasiTrbAdmin Role = "EASI_TRB_ADMIN"
 	// A generic EASi user
 	RoleEasiUser Role = "EASI_USER"
 )
@@ -768,12 +910,13 @@ var AllRole = []Role{
 	RoleEasi508User,
 	RoleEasi508TesterOrUser,
 	RoleEasiGovteam,
+	RoleEasiTrbAdmin,
 	RoleEasiUser,
 }
 
 func (e Role) IsValid() bool {
 	switch e {
-	case RoleEasi508Tester, RoleEasi508User, RoleEasi508TesterOrUser, RoleEasiGovteam, RoleEasiUser:
+	case RoleEasi508Tester, RoleEasi508User, RoleEasi508TesterOrUser, RoleEasiGovteam, RoleEasiTrbAdmin, RoleEasiUser:
 		return true
 	}
 	return false

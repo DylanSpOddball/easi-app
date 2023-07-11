@@ -1,14 +1,12 @@
-import React from 'react';
+/*
+Wrapper for Truss' <Alert> component to allow for manually closing the component
+*/
+
+import React, { useEffect, useState } from 'react';
+import { Alert as TrussAlert, Button } from '@trussworks/react-uswds';
 import classnames from 'classnames';
 
-type AlertProps = {
-  type: 'success' | 'warning' | 'error' | 'info';
-  heading?: React.ReactNode;
-  children?: React.ReactNode;
-  slim?: boolean;
-  noIcon?: boolean;
-  inline?: boolean;
-} & JSX.IntrinsicElements['div'];
+import './index.scss';
 
 type AlertTextProps = {
   className?: string;
@@ -26,47 +24,75 @@ export const AlertText = ({
     </p>
   );
 };
+
+type AlertProps = {
+  type: 'success' | 'warning' | 'error' | 'info';
+  heading?: React.ReactNode;
+  children?: React.ReactNode;
+  'data-testid'?: string;
+  slim?: boolean;
+  noIcon?: boolean;
+  inline?: boolean;
+  isClosable?: boolean;
+  closeAlert?: (value: any) => any;
+} & JSX.IntrinsicElements['div'];
+
 export const Alert = ({
   type,
   heading,
   children,
-  slim,
+  slim = type === 'success' || type === 'error',
   noIcon,
   className,
   inline,
+  // Default to closable button if type = success or error
+  isClosable = type === 'success' || type === 'error',
+  closeAlert,
   ...props
 }: AlertProps & React.HTMLAttributes<HTMLDivElement>): React.ReactElement => {
   const classes = classnames(
-    'usa-alert',
     {
-      'usa-alert--success': type === 'success',
-      'usa-alert--warning': type === 'warning',
-      'usa-alert--error': type === 'error',
-      'usa-alert--info': type === 'info',
-      'usa-alert--slim': slim,
-      'usa-alert--no-icon': noIcon,
-      'easi-inline-alert': inline
+      'easi-inline-alert': inline,
+      'easi-alert-text': isClosable
     },
     className
   );
 
-  const renderChildren = () => {
-    if (children) {
-      if (typeof children === 'string') {
-        return <AlertText>{children}</AlertText>;
-      }
-      return children;
-    }
-    return <></>;
-  };
+  const [isClosed, setClosed] = useState<boolean>(false);
+
+  // closeAlert is a state setter passed down to conditionally render alert component from parent
+  useEffect(() => {
+    if (closeAlert && isClosed) closeAlert(false);
+  }, [isClosed, closeAlert]);
 
   return (
-    <div className={classes} data-testid="alert" {...props}>
-      <div className="usa-alert__body">
-        {heading && <h3 className="usa-alert__heading">{heading}</h3>}
-        {renderChildren()}
-      </div>
-    </div>
+    <>
+      {!isClosed && (
+        <TrussAlert
+          type={type}
+          heading={heading}
+          slim={slim}
+          noIcon={noIcon}
+          className={classes}
+          {...props}
+        >
+          {children}
+          {isClosable && (
+            <Button
+              type="button"
+              role="button"
+              className="easi-alert__close-button text-black text-no-underline margin-top-0"
+              tabIndex={0}
+              aria-label="Close Button"
+              onClick={() => setClosed(true)}
+              unstyled
+            >
+              &#10005;
+            </Button>
+          )}
+        </TrussAlert>
+      )}
+    </>
   );
 };
 

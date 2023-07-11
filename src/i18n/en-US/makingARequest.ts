@@ -1,13 +1,13 @@
 const makingARequest = {
   heading: 'IT Governance requests',
-  subheading: 'Request new Lifecycle IDs for your systems.',
+  subheading:
+    'Request new Life Cycle IDs for your systems, services, or other contracts.',
   reasonList: {
     intro: 'You can make a request to:',
     options: [
-      'add a new system',
+      'add a new system or service',
       'make major changes or updates',
-      're-compete a contract',
-      'decomission a system'
+      're-compete a contract'
     ]
   },
   forEnterpriseArchitectureHelp: {

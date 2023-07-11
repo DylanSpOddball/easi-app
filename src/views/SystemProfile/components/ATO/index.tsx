@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Alert,
   Button,
   Card,
   CardFooter,
@@ -18,6 +17,7 @@ import classnames from 'classnames';
 import { useFlags } from 'launchdarkly-react-client-sdk';
 import { camelCase } from 'lodash';
 
+import Alert from 'components/shared/Alert';
 import {
   DescriptionDefinition,
   DescriptionTerm
@@ -34,11 +34,8 @@ import {
   SystemProfileSubviewProps,
   ThreatLevel
 } from 'types/systemProfile';
-import {
-  formatDate,
-  showAtoExpirationDate,
-  showVal
-} from 'views/SystemProfile';
+import { formatDateUtc } from 'utils/date';
+import { showAtoExpirationDate, showVal } from 'views/SystemProfile';
 
 import './index.scss';
 
@@ -93,7 +90,7 @@ const ATO = ({ system }: SystemProfileSubviewProps) => {
               className={classnames('grid-col-12', {
                 'bg-success-dark': atoStatus === 'Active',
                 'bg-warning':
-                  atoStatus === 'Due Soon' || atoStatus === 'In Progress',
+                  atoStatus === 'Due Soon' || atoStatus === 'In progress',
                 'bg-error-dark': atoStatus === 'Expired',
                 'bg-base-lighter': atoStatus === 'No ATO'
               })}
@@ -105,7 +102,7 @@ const ATO = ({ system }: SystemProfileSubviewProps) => {
                   'text-base-darkest':
                     atoStatus === 'Due Soon' ||
                     atoStatus === 'No ATO' ||
-                    atoStatus === 'In Progress'
+                    atoStatus === 'In progress'
                 })}
               >
                 <DescriptionTerm term={t('singleSystem.ato.status')} />
@@ -120,7 +117,7 @@ const ATO = ({ system }: SystemProfileSubviewProps) => {
                     className={classnames('grid-col-12', {
                       'border-success-darker': atoStatus === 'Active',
                       'border-warning-dark':
-                        atoStatus === 'Due Soon' || atoStatus === 'In Progress',
+                        atoStatus === 'Due Soon' || atoStatus === 'In progress',
                       'border-error-darker': atoStatus === 'Expired'
                       // 'border-base-light': atoStatus === 'No ATO'
                     })}
@@ -135,7 +132,7 @@ const ATO = ({ system }: SystemProfileSubviewProps) => {
                     'text-base-darkest':
                       atoStatus === 'Due Soon' ||
                       // atoStatus === 'No ATO' ||
-                      atoStatus === 'In Progress'
+                      atoStatus === 'In progress'
                   })}
                 >
                   <DescriptionTerm term={t('singleSystem.ato.expiration')} />
@@ -156,7 +153,7 @@ const ATO = ({ system }: SystemProfileSubviewProps) => {
         )}
 
         {flags.systemProfileHiddenFields &&
-          atoStatus === 'In Progress' &&
+          atoStatus === 'In progress' &&
           system.activities !== undefined && (
             <ProcessList>
               {system.activities.map(act => (
@@ -438,7 +435,7 @@ const ATO = ({ system }: SystemProfileSubviewProps) => {
                     className="line-height-body-3 margin-bottom-4"
                     definition={showVal(
                       ato?.lastAssessmentDate &&
-                        formatDate(ato.lastAssessmentDate)
+                        formatDateUtc(ato.lastAssessmentDate, 'MMMM d, yyyy')
                     )}
                   />
                 </Grid>

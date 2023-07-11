@@ -18,10 +18,21 @@ func (s *Store) TruncateAllTablesDANGEROUS(logger *zap.Logger) error {
 	estimated_lifecycle_costs,
 	business_cases,
 	grt_feedback,
+	governance_request_feedback,
 	system_intake_contacts,
 	system_intake_funding_sources,
+	system_intake_documents,
 	system_intakes,
+	trb_lead_options,
+	trb_request_documents,
+	trb_request_funding_sources,
+	trb_request_forms,
 	trb_request_attendees,
+	trb_request_feedback,
+	trb_advice_letter_recommendations,
+	trb_admin_notes,
+	trb_advice_letters,
+	trb_request_system_intakes,
 	trb_request
 	`
 

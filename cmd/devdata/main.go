@@ -11,16 +11,25 @@ import (
 	"go.uber.org/zap"
 	ld "gopkg.in/launchdarkly/go-server-sdk.v5"
 
+	"github.com/cmsgov/easi-app/cmd/devdata/mock"
 	"github.com/cmsgov/easi-app/pkg/appconfig"
 	"github.com/cmsgov/easi-app/pkg/appcontext"
 	"github.com/cmsgov/easi-app/pkg/models"
 	"github.com/cmsgov/easi-app/pkg/storage"
 	"github.com/cmsgov/easi-app/pkg/testhelpers"
+	"github.com/cmsgov/easi-app/pkg/upload"
 )
+
+type seederConfig struct {
+	logger   *zap.Logger
+	store    *storage.Store
+	s3Client *upload.S3Client
+}
 
 func main() {
 	config := testhelpers.NewConfig()
 	logger, loggerErr := zap.NewDevelopment()
+
 	if loggerErr != nil {
 		panic(loggerErr)
 	}
@@ -40,9 +49,24 @@ func main() {
 		panic(ldErr)
 	}
 
-	store, storeErr := storage.NewStore(logger, dbConfig, ldClient)
+	store, storeErr := storage.NewStore(dbConfig, ldClient)
 	if storeErr != nil {
 		panic(storeErr)
+	}
+
+	s3Cfg := upload.Config{
+		Bucket:  config.GetString(appconfig.AWSS3FileUploadBucket),
+		Region:  config.GetString(appconfig.AWSRegion),
+		IsLocal: true,
+	}
+
+	s3Client := upload.NewS3Client(s3Cfg)
+
+	ctx := mock.CtxWithLoggerAndPrincipal(logger, mock.PrincipalUser)
+	seederConfig := &seederConfig{
+		logger:   logger,
+		store:    store,
+		s3Client: &s3Client,
 	}
 
 	makeAccessibilityRequest("TACO", store)
@@ -117,6 +141,7 @@ func main() {
 		i.Solution = null.StringFrom("The quick brown fox jumps over the lazy dog.")
 		i.ProcessStatus = null.StringFrom("Initial development underway")
 		i.EASupportRequest = null.BoolFrom(false)
+		i.HasUIChanges = null.BoolFrom(false)
 		i.ExistingContract = null.StringFrom("No")
 		i.GrtReviewEmailBody = null.StringFrom("")
 	})
@@ -172,21 +197,34 @@ func main() {
 		c.Status = models.BusinessCaseStatusCLOSED
 	})
 
-	makeTRBRequest(models.TRBTNeedHelp, logger, store, func(t *models.TRBRequest) {
-		t.ID = uuid.MustParse("1afc9242-f244-47a3-9f91-4d6fedd8eb91")
-		t.Name = "My excellent question"
+	makeSystemIntake("Intake with expiring LCID and no EUA User ID - test case for EASI-3083", logger, store, func(i *models.SystemIntake) {
+		lifecycleExpiresAt := time.Now().Add(30 * 24 * time.Hour)
+		submittedAt := time.Now().Add(-365 * 24 * time.Hour)
+		i.LifecycleID = null.StringFrom("300001")
+		i.LifecycleExpiresAt = &lifecycleExpiresAt
+		i.Status = models.SystemIntakeStatusLCIDISSUED
+		i.SubmittedAt = &submittedAt
+		i.EUAUserID = null.StringFromPtr(nil)
 	})
 
-	makeTRBRequest(models.TRBTFormalReview, logger, store, func(t *models.TRBRequest) {
-		t.ID = uuid.MustParse("9841c768-bdcd-4856-bae2-62cfdaffacf6")
-		t.Name = "TACO Review"
-		t.CreatedBy = "TACO"
-	})
-	makeTRBRequest(models.TRBTFormalReview, logger, store, func(t *models.TRBRequest) {
-		t.ID = uuid.MustParse("21f175b9-bcbe-41c1-9c07-9844869bc1ce")
-		t.Name = "Archived Request"
-		t.Archived = true
-	})
+	// TODO - EASI-2888 - remove mention of this ticket in comments below; remove whole comment block if EASI-3019 also implemented
+	// TODO - EASI-3019 - remove mention of this ticket in comments below; remove whole comment block if EASI-2888 also implemented
+
+	// Currently, these create system intakes along with feedback, but with no action(s) associated with the feedback.
+	// The actions will be added later in EASI-2888 and EASI-3019.
+	intakeID := uuid.MustParse("4d3f9821-e043-42bf-9cd0-faa5f053ed32")
+	makeSystemIntakeWithProgressToNextStep("Intake with feedback on progression to next step", logger, store, "USR1", intakeID, "progression feedback")
+
+	intakeID = uuid.MustParse("29486f85-1aba-4eaf-a7dd-6137b9873adc")
+	makeSystemIntakeWithEditsRequested("Edits requested on intake request", logger, store, "USR1", intakeID, "intake request feedback", models.GovernanceRequestFeedbackTargetIntakeRequest)
+
+	intakeID = uuid.MustParse("ce874e71-de26-46da-bbfe-a8e3af960108")
+	makeSystemIntakeWithEditsRequested("Edits requested on draft business case", logger, store, "USR1", intakeID, "draft biz case feedback", models.GovernanceRequestFeedbackTargetDraftBusinessCase)
+
+	intakeID = uuid.MustParse("67eebec8-9242-4f2c-b337-f674686a5ab5")
+	makeSystemIntakeWithEditsRequested("Edits requested on final business case", logger, store, "USR1", intakeID, "final biz case feedback", models.GovernanceRequestFeedbackTargetFinalBusinessCase)
+
+	must(nil, seederConfig.seedTRBRequests(ctx))
 }
 
 func makeSystemIntake(name string, logger *zap.Logger, store *storage.Store, callbacks ...func(*models.SystemIntake)) *models.SystemIntake {
@@ -204,7 +242,7 @@ func makeSystemIntake(name string, logger *zap.Logger, store *storage.Store, cal
 	}
 
 	intake := models.SystemIntake{
-		EUAUserID: null.StringFrom("ABCD"),
+		EUAUserID: null.StringFrom(mock.PrincipalUser),
 		Status:    models.SystemIntakeStatusINTAKESUBMITTED,
 
 		RequestType:                 models.SystemIntakeRequestTypeNEW,
@@ -228,6 +266,7 @@ func makeSystemIntake(name string, logger *zap.Logger, store *storage.Store, cal
 
 		ProcessStatus:      null.StringFrom("I have done some initial research"),
 		EASupportRequest:   null.BoolFrom(true),
+		HasUIChanges:       null.BoolFrom(true),
 		ExistingContract:   null.StringFrom("HAVE_CONTRACT"),
 		CostIncrease:       null.StringFrom("YES"),
 		CostIncreaseAmount: null.StringFrom("10 million dollars?"),
@@ -265,7 +304,7 @@ func makeSystemIntake(name string, logger *zap.Logger, store *storage.Store, cal
 		Feedback:       null.StringFrom("This business case needs feedback"),
 	}))
 
-	must(store.CreateNote(ctx, &models.Note{
+	must(store.CreateSystemIntakeNote(ctx, &models.SystemIntakeNote{
 		SystemIntakeID: intake.ID,
 		AuthorEUAID:    "QQQQ",
 		AuthorName:     null.StringFrom("Author Name"),
@@ -276,6 +315,65 @@ func makeSystemIntake(name string, logger *zap.Logger, store *storage.Store, cal
 	must(store.UpdateSystemIntakeFundingSources(ctx, intake.ID, fundingSources))
 
 	return &intake
+}
+
+// TODO - EASI-3019 - call functions/methods to take "progress to new step" action;
+// also, remove direct call to store.CreateGovernanceRequestFeedback(), action should save feedback
+func makeSystemIntakeWithProgressToNextStep(
+	name string,
+	logger *zap.Logger,
+	store *storage.Store,
+	creatingUser string,
+	intakeID uuid.UUID,
+	feedbackText string,
+) {
+	ctx := appcontext.WithLogger(context.Background(), logger)
+
+	makeSystemIntake(name, logger, store, func(i *models.SystemIntake) {
+		i.ID = intakeID
+	})
+
+	feedback := models.GovernanceRequestFeedback{
+		BaseStruct: models.BaseStruct{
+			CreatedBy: creatingUser,
+		},
+		IntakeID:     intakeID,
+		Feedback:     feedbackText,
+		SourceAction: models.GovernanceRequestFeedbackSourceActionProgressToNewStep,
+		TargetForm:   models.GovernanceRequestFeedbackTargetNoTargetProvided,
+	}
+
+	must(store.CreateGovernanceRequestFeedback(ctx, &feedback))
+}
+
+// TODO - EASI-2888 - call functions/methods to take "request edits" action;
+// also, remove direct call to store.CreateGovernanceRequestFeedback(), action should save feedback
+func makeSystemIntakeWithEditsRequested(
+	name string,
+	logger *zap.Logger,
+	store *storage.Store,
+	creatingUser string,
+	intakeID uuid.UUID,
+	feedbackText string,
+	targetedForm models.GovernanceRequestFeedbackTargetForm,
+) {
+	ctx := appcontext.WithLogger(context.Background(), logger)
+
+	makeSystemIntake(name, logger, store, func(i *models.SystemIntake) {
+		i.ID = intakeID
+	})
+
+	feedback := models.GovernanceRequestFeedback{
+		BaseStruct: models.BaseStruct{
+			CreatedBy: creatingUser,
+		},
+		IntakeID:     intakeID,
+		Feedback:     feedbackText,
+		SourceAction: models.GovernanceRequestFeedbackSourceActionRequestEdits,
+		TargetForm:   targetedForm,
+	}
+
+	must(store.CreateGovernanceRequestFeedback(ctx, &feedback))
 }
 
 func makeBusinessCase(name string, logger *zap.Logger, store *storage.Store, intake *models.SystemIntake, callbacks ...func(*models.BusinessCase)) {
@@ -289,7 +387,7 @@ func makeBusinessCase(name string, logger *zap.Logger, store *storage.Store, int
 	noCost := 0
 	businessCase := models.BusinessCase{
 		SystemIntakeID:       intake.ID,
-		EUAUserID:            "ABCD",
+		EUAUserID:            mock.PrincipalUser,
 		Requester:            null.StringFrom("Shane Clark"),
 		RequesterPhoneNumber: null.StringFrom("3124567890"),
 		Status:               models.BusinessCaseStatusOPEN,
@@ -359,7 +457,7 @@ func makeAccessibilityRequest(name string, store *storage.Store, callbacks ...fu
 	accessibilityRequest := models.AccessibilityRequest{
 		Name:      fmt.Sprintf("%s v2", name),
 		IntakeID:  &intake.ID,
-		EUAUserID: "ABCD",
+		EUAUserID: mock.PrincipalUser,
 	}
 	for _, cb := range callbacks {
 		cb(&accessibilityRequest)
@@ -377,7 +475,6 @@ func makeTestDate(logger *zap.Logger, store *storage.Store, callbacks ...func(*m
 	}
 
 	must(store.CreateTestDate(ctx, &testDate))
-
 }
 
 func must(_ interface{}, err error) {
@@ -389,15 +486,4 @@ func must(_ interface{}, err error) {
 func date(year, month, day int) *time.Time {
 	date := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.UTC)
 	return &date
-}
-
-func makeTRBRequest(rType models.TRBRequestType, logger *zap.Logger, store *storage.Store, callbacks ...func(*models.TRBRequest)) *models.TRBRequest {
-	trb := models.NewTRBRequest("EASI")
-	trb.Type = rType
-	trb.Status = models.TRBSOpen
-	for _, cb := range callbacks {
-		cb(trb)
-	}
-	ret, _ := store.CreateTRBRequest(logger, trb)
-	return ret
 }

@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useHistory, useLocation, useParams } from 'react-router-dom';
-import { DocumentNode, useMutation } from '@apollo/client';
+import { ApolloError, DocumentNode, useMutation } from '@apollo/client';
 import { Button } from '@trussworks/react-uswds';
-import { Field, Form, Formik, FormikProps } from 'formik';
+import { Field, Form, Formik, FormikHelpers, FormikProps } from 'formik';
 
 import PageHeading from 'components/PageHeading';
 import { ErrorAlert, ErrorAlertMessage } from 'components/shared/ErrorAlert';
@@ -11,7 +11,7 @@ import FieldErrorMsg from 'components/shared/FieldErrorMsg';
 import FieldGroup from 'components/shared/FieldGroup';
 import Label from 'components/shared/Label';
 import TextAreaField from 'components/shared/TextAreaField';
-import useSystemIntake from 'hooks/useSystemIntake';
+import useSystemIntakeContacts from 'hooks/useSystemIntakeContacts';
 import { ActionForm } from 'types/action';
 import { BasicActionInput } from 'types/graphql-global-types';
 import { SystemIntakeContactProps } from 'types/systemIntake';
@@ -32,50 +32,81 @@ type SubmitActionProps = {
 
 const SubmitAction = ({ actionName, query }: SubmitActionProps) => {
   const { systemId } = useParams<{ systemId: string }>();
-  const { systemIntake } = useSystemIntake(systemId);
   const { t } = useTranslation('action');
   const history = useHistory();
 
-  const [shouldSendEmail, setShouldSendEmail] = useState<boolean>(true);
+  // System intake contacts
+  const { contacts } = useSystemIntakeContacts(systemId);
+  const { requester } = contacts.data;
+
+  /** Whether contacts have loaded for the first time */
+  const [contactsLoaded, setContactsLoaded] = useState(false);
+
+  // Active contact for adding/verifying recipients
   const [
     activeContact,
     setActiveContact
   ] = useState<SystemIntakeContactProps | null>(null);
 
-  const [mutate, mutationResult] = useMutation<ActionInput>(query);
+  const [mutate] = useMutation<ActionInput>(query);
 
   const { pathname } = useLocation();
 
-  const dispatchSave = (values: ActionForm) => {
-    const { feedback, notificationRecipients } = values;
+  const dispatchSave = (
+    values: ActionForm,
+    { setFieldError }: FormikHelpers<ActionForm>
+  ) => {
+    const { feedback, notificationRecipients, shouldSendEmail } = values;
+
+    const variables: ActionInput = {
+      input: {
+        intakeId: systemId,
+        feedback
+      }
+    };
+
+    if (shouldSendEmail) {
+      variables.input.notificationRecipients = notificationRecipients;
+    }
+
+    // GQL mutation to submit action
     mutate({
-      variables: {
-        input: {
-          intakeId: systemId,
-          feedback,
-          shouldSendEmail,
-          notificationRecipients
+      variables
+    })
+      .then(({ errors }) => {
+        if (!errors) {
+          // If no errors, view intake request
+          history.push(`/governance-review-team/${systemId}/intake-request`);
         }
-      }
-    }).then(response => {
-      if (!response.errors) {
-        history.push(`/governance-review-team/${systemId}/intake-request`);
-      }
-    });
+      })
+      // Set Formik error to display alert
+      .catch((e: ApolloError) => setFieldError('systemIntake', e.message));
   };
 
   const initialValues: ActionForm = {
     feedback: '',
     notificationRecipients: {
-      regularRecipientEmails: [systemIntake?.requester?.email!].filter(e => e),
+      regularRecipientEmails: [requester.email].filter(e => e), // Filter out null emails
       shouldNotifyITGovernance: true,
       shouldNotifyITInvestment:
         pathname.endsWith('no-governance') ||
         pathname.endsWith('not-it-request')
-    }
+    },
+    shouldSendEmail: true
   };
 
   const backLink = `/governance-review-team/${systemId}/actions`;
+
+  // Sets contactsLoaded to true when GetSystemIntakeContactsQuery loading state changes
+  useEffect(() => {
+    if (!contacts.loading) {
+      setContactsLoaded(true);
+    }
+  }, [contacts.loading]);
+
+  // Returns null until GetSystemIntakeContactsQuery has completed
+  // Allows initial values to fully load before initializing form
+  if (!contactsLoaded) return null;
 
   return (
     <Formik
@@ -85,6 +116,7 @@ const SubmitAction = ({ actionName, query }: SubmitActionProps) => {
       validateOnBlur={false}
       validateOnChange={false}
       validateOnMount={false}
+      enableReinitialize
     >
       {(formikProps: FormikProps<ActionForm>) => {
         const {
@@ -115,14 +147,6 @@ const SubmitAction = ({ actionName, query }: SubmitActionProps) => {
                 })}
               </ErrorAlert>
             )}
-            {mutationResult && mutationResult.error && (
-              <ErrorAlert heading="Error">
-                <ErrorAlertMessage
-                  message={mutationResult.error.message}
-                  errorKey="systemIntake"
-                />
-              </ErrorAlert>
-            )}
             <PageHeading
               data-testid="grt-submit-action-view"
               className="margin-top-0 margin-bottom-3"
@@ -135,7 +159,7 @@ const SubmitAction = ({ actionName, query }: SubmitActionProps) => {
             <div className="margin-bottom-05 text-bold line-height-body-2">
               {t('extendLcid.selectedAction')}
             </div>
-            <div>
+            <div data-testid="grtSelectedAction">
               {actionName}&nbsp;
               <Link to={backLink}>{t('submitAction.backLink')}</Link>
             </div>
@@ -151,6 +175,7 @@ const SubmitAction = ({ actionName, query }: SubmitActionProps) => {
                   systemIntakeId={systemId}
                   activeContact={activeContact}
                   setActiveContact={setActiveContact}
+                  contacts={contacts.data}
                   recipients={values.notificationRecipients}
                   setRecipients={recipients =>
                     setFieldValue('notificationRecipients', recipients)
@@ -185,8 +210,7 @@ const SubmitAction = ({ actionName, query }: SubmitActionProps) => {
                     type="submit"
                     onClick={() => {
                       setErrors({});
-                      setShouldSendEmail(true);
-                      setFieldValue('skipEmail', false);
+                      setFieldValue('shouldSendEmail', true);
                     }}
                     disabled={!!activeContact}
                   >
@@ -195,13 +219,9 @@ const SubmitAction = ({ actionName, query }: SubmitActionProps) => {
                 </div>
                 <div>
                   <CompleteWithoutEmailButton
-                    onClick={() => {
-                      setErrors({});
-                      setShouldSendEmail(false);
-                      setFieldValue('skipEmail', true);
-                      // todo hack timeout to propagate skipEmail value to the validator before submission
-                      setTimeout(submitForm);
-                    }}
+                    setErrors={setErrors}
+                    setFieldValue={setFieldValue}
+                    submitForm={submitForm}
                     disabled={!!activeContact}
                   />
                 </div>

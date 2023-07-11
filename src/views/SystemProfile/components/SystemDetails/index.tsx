@@ -1,7 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Alert,
   Card,
   CardBody,
   CardFooter,
@@ -9,11 +8,12 @@ import {
   CardHeader,
   Grid,
   IconCheckCircle,
+  IconVerifiedUser,
   Link
 } from '@trussworks/react-uswds';
 import { useFlags } from 'launchdarkly-react-client-sdk';
-import { ReactComponent as VerifiedUserIcon } from 'uswds/src/img/usa-icons/verified_user.svg';
 
+import Alert from 'components/shared/Alert';
 import {
   DescriptionDefinition,
   DescriptionTerm
@@ -152,10 +152,10 @@ const SystemDetails = ({ system }: SystemProfileSubviewProps) => {
                   {location.isBehindWebApplicationFirewall && (
                     <div>
                       <dd className="text-right text-base-dark system-profile__icon-container">
-                        <VerifiedUserIcon
+                        <IconVerifiedUser
                           width="1rem"
+                          color="#00a91c"
                           height="1rem"
-                          fill="#00a91c"
                           className="margin-right-1"
                           aria-label="verified"
                         />

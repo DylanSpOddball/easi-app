@@ -39,7 +39,7 @@ func TestServicesTestSuite(t *testing.T) {
 		SSLMode:        config.GetString(appconfig.DBSSLModeConfigKey),
 		MaxConnections: config.GetInt(appconfig.DBMaxConnections),
 	}
-	store, err := storage.NewStore(logger, dbConfig, ldClient)
+	store, err := storage.NewStore(dbConfig, ldClient)
 	if err != nil {
 		t.Fail()
 		fmt.Printf("Failed to connect to database: %v", err)
@@ -68,8 +68,4 @@ func newTestServicesConfig(td *ldtestdata.TestDataSource) Config {
 		clock:    clock.NewMock(),
 		ldClient: ldClient,
 	}
-}
-
-func setBoolFeatureFlag(td *ldtestdata.TestDataSource, flagName string, value bool) {
-	td.Update(td.Flag(flagName).BooleanFlag().VariationForAllUsers(value))
 }

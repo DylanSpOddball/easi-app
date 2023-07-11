@@ -3,7 +3,9 @@ import taskList from 'i18n/en-US/taskList';
 import governanceReviewBoard from './articles/governanceReviewBoard';
 import governanceReviewTeam from './articles/governanceReviewTeam';
 import newSystem from './articles/newSystem';
+import prepareTrbConsultMeeting from './articles/prepareTrbConsultMeeting';
 import sampleBusinessCase from './articles/sampleBusinessCase';
+import stepsInTRBProcess from './articles/stepsInTRBProcess';
 import stepsInvolved508 from './articles/stepsInvolved508';
 import templatesFor508Testing from './articles/templatesFor508Testing';
 import accessibility from './accessibility';
@@ -20,6 +22,7 @@ import header from './header';
 import help from './help';
 import home from './home';
 import intake from './intake';
+import itGov from './itGov';
 import makingARequest from './makingARequest';
 import privacyPolicy from './privacyPolicy';
 import systemProfile from './systemProfile';
@@ -47,9 +50,12 @@ const enUS = {
   help,
   home,
   intake,
+  itGov,
   makingARequest,
   newSystem,
+  prepareTrbConsultMeeting,
   privacyPolicy,
+  stepsInTRBProcess,
   systemProfile,
   tableAndPagination,
   taskList,

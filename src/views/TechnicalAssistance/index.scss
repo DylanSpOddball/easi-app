@@ -1,0 +1,201 @@
+@use 'uswds-core' as *;
+@use 'viewports' as *;
+
+.technical-assistance {
+  .date-time-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 1rem;
+    .usa-date-picker {
+      &__external-input {
+      width: 228px;
+      }
+      &__button {
+        width: 2.75rem;
+      }
+    }
+    .usa-time-picker {
+      width: 228px;
+    }
+  }
+  .trb-admin-alert {
+    .usa-alert {
+      border-left: none;
+    }
+    .usa-alert__body {
+      max-width: 75rem;
+    }
+  }
+  .trb-requests-table {
+    th:last-child, tr:last-child {
+      width: 200px;
+    }
+  }
+
+  .subject-container-height {
+    height:  27rem;
+    @media screen and (max-width: $desktop) {
+      height:  auto;
+    }
+  }
+
+  .trb-admin-team-home-actions {
+    li {
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+    li:not(:first-child) {
+      margin-left: 0;
+    }
+    @media screen and (min-width: $mobile) {
+      li:not(:last-of-type) {
+        margin-right: 1rem;
+        padding-right: 1rem;
+        border-right: 1px solid color('base-light');
+      }
+    }
+  }
+
+  .trb-advice-letter-request-summary {
+    .easi-collapsable-link__content-no-bar {
+      margin: 0;
+      padding: 0;
+    }
+  }
+
+  .usa-form {
+    /* Top margin for 1st level form groups */
+    > .usa-form-group {
+      margin-top: 2rem;
+
+    }
+    .usa-form-group {
+      /* Smaller top margin for nested form groups */
+      .usa-fieldset .usa-form-group {
+        margin-top: .5rem;
+      }
+
+      /* Labels and legends */
+      legend {
+        font-weight: 700;
+      }
+      .usa-legend {
+        margin-bottom: 0;
+      }
+      .usa-label {
+        max-width: none;
+        margin-bottom: .5rem;
+        .usa-hint {
+          display: block; /* line break between label and hint */
+          font-weight: normal;
+          margin-top: .25rem;
+        }
+      }
+      /* Radio & checkbox label spacing */
+      .usa-radio__label,
+      .usa-checkbox__label {
+        margin-top: .75rem;
+        letter-spacing: -.01em;
+
+      }
+      .easi-multiselect .usa-checkbox__label {
+        margin-top: 0;
+      }
+
+      /* These input types and containers expand to their container width */
+      .usa-input,
+      .usa-textarea,
+      .usa-combo-box,
+      .usa-file-input {
+        max-width: 100%;
+      }
+
+      /* Textarea max height */
+      .usa-textarea {
+        max-height: 155px;
+      }
+
+      /* Datepicker has extra margin space to remove */
+      .usa-date-picker {
+        .usa-date-picker__external-input,
+        .usa-date-picker__button {
+          margin-top: 0;
+        }
+      }
+
+      /* Date picker undo width wrapping */
+      /*
+      .usa-date-picker__calendar {
+        @media (min-width: $desktop) {
+          width: 20rem;
+        }
+      }
+      */
+
+      /* Timepicker has an extra form-group wrapper with space to remove */
+      > .usa-form-group:has(> .usa-time-picker) {
+        margin-top: 0;
+      }
+      /* The Timepicker component generates its own label; remove it */
+      > .usa-form-group > .usa-label:has(+ .usa-time-picker) {
+        display: none;
+      }
+
+      /* Errors messages under group field labels */
+      .usa-error-message {
+        padding-bottom: 0;
+      }
+    }
+
+    /* Button styling */
+    a.usa-button {
+      color: color('white');
+      text-decoration: none;
+      &:visited {
+        color: color('white');
+      }
+      &:hover {
+        color: color('white')
+      }
+      &--outline {
+        color: color('primary');
+        &:visited {
+          color: color('primary');
+        }
+        &:hover {
+          color: color('primary-dark')
+        }
+      }
+    }
+  }
+
+  .list-disc {
+    list-style-type: disc;
+  }
+
+  .usa-alert__body {
+    margin-left: 0;
+  }
+
+  /* Form level error alert */
+  .usa-alert--error {
+    button.usa-error-message {
+      padding: 0;
+      line-height: inherit;
+      text-align: left;
+    }
+  }
+
+  .usa-legend {
+    display: contents !important;
+  }
+
+  .intake-spinner {
+    margin-top: 6rem !important;
+  }
+}
+
+/* Override default auto margins on truss modal */
+.usa-modal-wrapper .usa-modal.trb-assign-lead-modal .usa-modal__main {
+  margin: 0;
+}

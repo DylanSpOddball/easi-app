@@ -1,0 +1,119 @@
+@use 'uswds-core' as *;
+@use 'viewports' as *;
+
+.task-list {
+  // Keep heading and order numbers the same
+  &__task-heading,
+  &__item:before {
+    font-size: 1.375em;
+  }
+
+  &__task-list {
+    margin: 0;
+    padding-left: 0;
+    counter-reset: primaryList secondaryList 3;
+
+    .task-list__item:before {
+      counter-increment: primaryList;
+      content: counter(primaryList) '. ';
+      line-height: 1.2;
+      width: 1.5rem;
+    }
+  }
+
+  &__item {
+    display: flex;
+
+    &--na {
+      color: color('base-dark');
+    }
+
+    &:before {
+      font-weight: bold;
+      white-space: pre;
+    }
+  }
+
+  &__item + &__item {
+    border-top: 1px solid color('black');
+    padding-top: 2em;
+  }
+
+  &__task-content {
+    width: 100%;
+  }
+
+  &__task-heading-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    position: relative;
+
+    @media screen and (max-width: $tablet) {
+      flex-direction: column;
+    }
+
+    > h3 {
+      @media screen and (min-width: $tablet) {
+        margin-right: 160px;
+      }
+    }
+
+    &__status {
+      .easi-task-status-tag {
+        margin: 0;
+      }
+
+      @media screen and (max-width: calc($tablet - 1px)) {
+        .easi-task-status-tag {
+          margin-right: 0.5rem;
+        }
+
+        > p:first-of-type {
+          display: inline-block;
+
+          > br {
+            display: none;
+          }
+        }
+      }
+
+      @media screen and (min-width: $tablet) {
+        position: absolute;
+        right: 0;
+        text-align: right;
+      }
+    }
+  }
+
+  &__task-description {
+    margin-bottom: 1rem;
+
+    @media screen and (max-width: calc($tablet - 1px)) {
+      margin-top: 1rem;
+    }
+    @media screen and (min-width: $tablet) {
+      margin-right: 160px;
+    }
+    @media screen and (min-width: $desktop) {
+      padding-right: 1rem;
+    }
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    p:first-of-type {
+      margin-top: 0;
+    }
+    p:last-of-type {
+      margin-bottom: 0;
+    }
+  }
+
+  &__meeting-date {
+    padding-left: 0.5rem;
+    border-left: 3px solid color('black');
+    font-weight: bold;
+  }
+}

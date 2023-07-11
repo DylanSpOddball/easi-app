@@ -1,3 +1,6 @@
+@use 'uswds-core' as *;
+@use 'colors' as *;
+
 .easi-grt {
   &__request-summary {
     background-color: $easi-bright-blue;
@@ -45,6 +48,10 @@
   &__nav-link {
     color: color('black');
     text-decoration: none;
+
+    &:hover {
+      color: color('primary');
+    }
 
     &--active {
       font-weight: bold;
